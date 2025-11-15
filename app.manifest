@@ -1,0 +1,52 @@
+{
+  "schemaVersion": "2.0.0",
+  "info": {
+    "title": "CACA - Content Activity Checking Application",
+    "id": {
+      "group": null,
+      "name": "caca-content-activity-checking-application",
+      "version": "0.0.1"
+    },
+    "author": [
+      {
+        "name": "Devin Slick",
+        "email": "devinslick@users.noreply.github.com",
+        "company": "Community"
+      }
+    ],
+    "releaseDate": null,
+    "description": "CACA (Content Activity Checking Application) - Track usage, health, and lifecycle of your Splunk dashboards",
+    "classification": {
+      "intendedAudience": "IT",
+      "categories": ["IT Operations", "Monitoring"],
+      "developmentStatus": "Beta/Draft"
+    },
+    "commonInformationModels": null,
+    "license": {
+      "name": "MIT",
+      "text": "LICENSE",
+      "uri": "https://mit-license.org/"
+    },
+    "privacyPolicy": {
+      "name": null,
+      "text": null,
+      "uri": null
+    },
+    "releaseNotes": {
+      "name": "README",
+      "text": "README.md",
+      "uri": null
+    }
+  },
+  "dependencies": null,
+  "tasks": null,
+  "inputGroups": null,
+  "incompatibleApps": null,
+  "platformRequirements": {
+    "splunk": {
+      "Enterprise": "*"
+    }
+  },
+  "supportedDeployments": ["*"],
+  "targetWorkloads": ["*"]
+}

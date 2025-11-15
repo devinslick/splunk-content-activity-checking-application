@@ -1,0 +1,382 @@
+<form version="1.1">
+  <label>💩 CACA Analysis - The Poop Deck</label>
+  <description>Deep dive analytics: Find the gems, flush the crap, and fix what's broken</description>
+  
+  <fieldset submitButton="false">
+    <input type="time" token="time_range">
+      <label>Analysis Time Range</label>
+      <default>
+        <earliest>-90d@d</earliest>
+        <latest>now</latest>
+      </default>
+    </input>
+    <input type="dropdown" token="stale_threshold">
+      <label>Stale Threshold (Days)</label>
+      <default>90</default>
+      <choice value="30">30 Days</choice>
+      <choice value="60">60 Days</choice>
+      <choice value="90">90 Days</choice>
+      <choice value="180">180 Days</choice>
+      <choice value="365">1 Year</choice>
+    </input>
+  </fieldset>
+  
+  <!-- Executive Summary -->
+  <row>
+    <panel>
+      <title>💎 VIP Dashboards (Top 10%)</title>
+      <single>
+        <search>
+          <query>| mstats sum(_value) as total_views WHERE index=caca_metrics AND metric_name="dashboard.views" BY pretty_name span=1d 
+| where _time >= relative_time(now(), "-30d")
+| stats sum(total_views) as views_30d by pretty_name 
+| eventstats perc90(views_30d) as p90
+| where views_30d >= p90
+| stats count as vip_count</query>
+          <earliest>-30d@d</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="colorMode">block</option>
+        <option name="rangeColors">["0x53a051"]</option>
+        <option name="underLabel">High-Value Content</option>
+      </single>
+    </panel>
+    
+    <panel>
+      <title>💩 Crap Candidates (Stale)</title>
+      <single>
+        <search>
+          <query>| mstats latest(_value) as last_view WHERE index=caca_metrics AND metric_name="dashboard.views" BY pretty_name 
+| eval days_since=round((now()-_time)/86400, 0) 
+| where days_since > $stale_threshold$ OR isnull(last_view)
+| stats count as stale_count</query>
+          <earliest>$time_range.earliest$</earliest>
+          <latest>$time_range.latest$</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="colorMode">block</option>
+        <option name="rangeColors">["0xf8be34","0xdc4e41"]</option>
+        <option name="rangeValues">[5]</option>
+        <option name="underLabel">Ready for Cleanup</option>
+      </single>
+    </panel>
+    
+    <panel>
+      <title>🔧 Broken Dashboards</title>
+      <single>
+        <search>
+          <query>| mstats sum(_value) as error_count WHERE index=caca_metrics AND metric_name="dashboard.errors" BY pretty_name span=1d 
+| where _time >= relative_time(now(), "-7d")
+| stats sum(error_count) as total_errors by pretty_name 
+| where total_errors > 0
+| stats count as broken_count</query>
+          <earliest>-7d@d</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="colorMode">block</option>
+        <option name="rangeColors">["0x53a051","0xf8be34","0xdc4e41"]</option>
+        <option name="rangeValues">[1,5]</option>
+        <option name="underLabel">Need Attention</option>
+      </single>
+    </panel>
+    
+    <panel>
+      <title>👻 Ghost Dashboards</title>
+      <single>
+        <search>
+          <query>| inputlookup dashboard_registry 
+| join type=left pretty_name 
+    [| mstats latest(_value) as last_view WHERE index=caca_metrics AND metric_name="dashboard.views" BY pretty_name]
+| where isnull(last_view)
+| stats count as never_viewed</query>
+          <earliest>$time_range.earliest$</earliest>
+          <latest>$time_range.latest$</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="colorMode">block</option>
+        <option name="rangeColors">["0x708794"]</option>
+        <option name="underLabel">Never Viewed</option>
+      </single>
+    </panel>
+  </row>
+  
+  <!-- The Good: High Performers -->
+  <row>
+    <panel>
+      <title>💎 The Gems - Most Valuable Dashboards (Last 30 Days)</title>
+      <table>
+        <search>
+          <query>| mstats sum(_value) as metric_value WHERE index=caca_metrics BY pretty_name, metric_name, app span=1d 
+| where _time >= relative_time(now(), "-30d")
+| stats sum(metric_value) as total by pretty_name, metric_name, app 
+| eval metric_type=case(
+    metric_name=="dashboard.views", "views",
+    metric_name=="dashboard.edits", "edits",
+    metric_name=="dashboard.errors", "errors",
+    1=1, "other")
+| eval {metric_type}=total 
+| stats values(app) as app sum(views) as views_30d sum(edits) as edits_30d sum(errors) as errors_30d by pretty_name 
+| fillnull value=0 views_30d edits_30d errors_30d
+| eval engagement_score=views_30d + (edits_30d * 2) - (errors_30d * 5)
+| where views_30d > 0
+| sort -engagement_score 
+| head 20
+| lookup dashboard_registry pretty_name OUTPUT owner description
+| eval health=case(errors_30d==0, "✓", errors_30d<5, "⚠", 1=1, "✗")
+| table pretty_name app views_30d edits_30d errors_30d engagement_score health owner description
+| rename pretty_name as "Dashboard", app as "App", views_30d as "Views (30d)", edits_30d as "Edits (30d)", errors_30d as "Errors (30d)", engagement_score as "Score", health as "Health", owner as "Owner", description as "Description"</query>
+          <earliest>-30d@d</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">row</option>
+        <option name="count">20</option>
+        <format type="color" field="Health">
+          <colorPalette type="map">{"✓":#53A051,"⚠":#F8BE34,"✗":#DC4E41}</colorPalette>
+        </format>
+        <format type="number" field="Views (30d)">
+          <option name="precision">0</option>
+        </format>
+        <format type="number" field="Edits (30d)">
+          <option name="precision">0</option>
+        </format>
+        <format type="number" field="Errors (30d)">
+          <option name="precision">0</option>
+        </format>
+        <format type="number" field="Score">
+          <option name="precision">0</option>
+        </format>
+        <drilldown>
+          <link target="_blank">/app/splunk-content-monitoring-console/dashboard_details?form.dashboard_name=$row.Dashboard$</link>
+        </drilldown>
+      </table>
+    </panel>
+  </row>
+  
+  <!-- The Bad: Stale Content -->
+  <row>
+    <panel>
+      <title>💩 The Crap - Stale Dashboards (Not Viewed in $stale_threshold$ Days)</title>
+      <table>
+        <search>
+          <query>| inputlookup dashboard_registry 
+| join type=left pretty_name 
+    [| mstats latest(_value) as last_view WHERE index=caca_metrics AND metric_name="dashboard.views" BY pretty_name 
+    | eval last_viewed_time=_time
+    | eval days_since_view=round((now()-_time)/86400, 1)]
+| eval days_since_view=if(isnull(days_since_view), 999, days_since_view)
+| where days_since_view > $stale_threshold$
+| eval last_viewed=if(days_since_view==999, "Never", strftime(last_viewed_time, "%Y-%m-%d"))
+| eval staleness=case(
+    days_since_view==999, "👻 Ghost",
+    days_since_view > 365, "💀 Ancient",
+    days_since_view > 180, "🥶 Frozen",
+    days_since_view > 90, "❄️ Cold",
+    1=1, "🌡️ Cooling")
+| eval recommendation=case(
+    days_since_view==999, "DELETE - Never used",
+    days_since_view > 365, "ARCHIVE - Over 1 year",
+    days_since_view > 180, "Review for archival",
+    days_since_view > 90, "Investigate usage",
+    1=1, "Monitor")
+| table pretty_name app owner days_since_view last_viewed staleness recommendation description
+| rename pretty_name as "Dashboard", app as "App", owner as "Owner", days_since_view as "Days Since View", last_viewed as "Last Viewed", staleness as "Status", recommendation as "Recommendation", description as "Description"
+| sort -"Days Since View"</query>
+          <earliest>$time_range.earliest$</earliest>
+          <latest>$time_range.latest$</latest>
+        </search>
+        <option name="drilldown">row</option>
+        <option name="count">50</option>
+        <format type="color" field="Status">
+          <colorPalette type="map">{"👻 Ghost":#708794,"💀 Ancient":#DC4E41,"🥶 Frozen":#F1813F,"❄️ Cold":#F8BE34,"🌡️ Cooling":#0877a6}</colorPalette>
+        </format>
+        <format type="number" field="Days Since View">
+          <option name="precision">0</option>
+        </format>
+        <drilldown>
+          <link target="_blank">/app/splunk-content-monitoring-console/dashboard_details?form.dashboard_name=$row.Dashboard$</link>
+        </drilldown>
+      </table>
+    </panel>
+  </row>
+  
+  <!-- The Ugly: Broken Content -->
+  <row>
+    <panel>
+      <title>🔧 The Broken - Dashboards with Health Issues (Last 7 Days)</title>
+      <table>
+        <search>
+          <query>| mstats sum(_value) as error_count WHERE index=caca_metrics AND metric_name="dashboard.errors" BY pretty_name, severity span=1d 
+| where _time >= relative_time(now(), "-7d")
+| stats sum(error_count) as total_errors by pretty_name, severity 
+| eval {severity}=total_errors
+| stats sum(error) as errors sum(warn) as warnings values(error) as has_errors values(warn) as has_warns by pretty_name
+| fillnull value=0 errors warnings
+| eval total_issues=errors+warnings
+| where total_issues > 0
+| lookup dashboard_registry pretty_name OUTPUT app owner description
+| join type=left pretty_name 
+    [| mstats sum(_value) as views WHERE index=caca_metrics AND metric_name="dashboard.views" BY pretty_name span=1d
+    | where _time >= relative_time(now(), "-7d")
+    | stats sum(views) as views_7d by pretty_name]
+| fillnull value=0 views_7d
+| eval severity_level=case(
+    errors > 50, "🔥 Critical",
+    errors > 10, "❌ High",
+    errors > 0, "⚠️ Medium",
+    warnings > 20, "⚠️ Medium",
+    1=1, "ℹ️ Low")
+| eval impact=case(
+    views_7d > 100 AND errors > 0, "HIGH - Affecting many users",
+    views_7d > 10 AND errors > 0, "MEDIUM - Some user impact",
+    errors > 0, "LOW - Limited usage",
+    1=1, "MINIMAL")
+| table pretty_name app errors warnings views_7d severity_level impact owner description
+| rename pretty_name as "Dashboard", app as "App", errors as "Errors", warnings as "Warnings", views_7d as "Views (7d)", severity_level as "Severity", impact as "Impact", owner as "Owner", description as "Description"
+| sort -Errors -Warnings</query>
+          <earliest>-7d@d</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">row</option>
+        <option name="count">30</option>
+        <format type="color" field="Severity">
+          <colorPalette type="map">{"🔥 Critical":#DC4E41,"❌ High":#F1813F,"⚠️ Medium":#F8BE34,"ℹ️ Low":#0877a6}</colorPalette>
+        </format>
+        <format type="number" field="Errors">
+          <option name="precision">0</option>
+        </format>
+        <format type="number" field="Warnings">
+          <option name="precision">0</option>
+        </format>
+        <format type="number" field="Views (7d)">
+          <option name="precision">0</option>
+        </format>
+        <drilldown>
+          <link target="_blank">/app/splunk-content-monitoring-console/dashboard_details?form.dashboard_name=$row.Dashboard$</link>
+        </drilldown>
+      </table>
+    </panel>
+  </row>
+  
+  <!-- The Neglected: Low Engagement -->
+  <row>
+    <panel>
+      <title>😴 The Neglected - Low Engagement Dashboards (Active but Underused)</title>
+      <table>
+        <search>
+          <query>| mstats sum(_value) as metric_value WHERE index=caca_metrics BY pretty_name, metric_name, app span=1d 
+| where _time >= relative_time(now(), "-30d")
+| stats sum(metric_value) as total by pretty_name, metric_name, app 
+| eval metric_type=case(
+    metric_name=="dashboard.views", "views",
+    metric_name=="dashboard.edits", "edits",
+    1=1, "other")
+| eval {metric_type}=total 
+| stats values(app) as app sum(views) as views_30d sum(edits) as edits_30d by pretty_name 
+| fillnull value=0 views_30d edits_30d
+| where views_30d > 0 AND views_30d < 20
+| lookup dashboard_registry pretty_name OUTPUT owner description
+| join type=left pretty_name 
+    [| mstats latest(_value) as last_view WHERE index=caca_metrics AND metric_name="dashboard.views" BY pretty_name 
+    | eval last_viewed=strftime(_time, "%Y-%m-%d")]
+| eval avg_views_per_day=round(views_30d/30, 1)
+| eval status=case(
+    views_30d < 5, "😴 Barely Used",
+    views_30d < 10, "🥱 Rarely Used",
+    1=1, "😐 Occasionally Used")
+| table pretty_name app views_30d avg_views_per_day edits_30d last_viewed status owner description
+| rename pretty_name as "Dashboard", app as "App", views_30d as "Views (30d)", avg_views_per_day as "Avg/Day", edits_30d as "Edits (30d)", last_viewed as "Last Viewed", status as "Status", owner as "Owner", description as "Description"
+| sort Views (30d)</query>
+          <earliest>-30d@d</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">row</option>
+        <option name="count">20</option>
+        <format type="color" field="Status">
+          <colorPalette type="map">{"😴 Barely Used":#DC4E41,"🥱 Rarely Used":#F8BE34,"😐 Occasionally Used":#0877a6}</colorPalette>
+        </format>
+        <format type="number" field="Views (30d)">
+          <option name="precision">0</option>
+        </format>
+        <format type="number" field="Avg/Day">
+          <option name="precision">1</option>
+        </format>
+        <format type="number" field="Edits (30d)">
+          <option name="precision">0</option>
+        </format>
+        <drilldown>
+          <link target="_blank">/app/splunk-content-monitoring-console/dashboard_details?form.dashboard_name=$row.Dashboard$</link>
+        </drilldown>
+      </table>
+    </panel>
+  </row>
+  
+  <!-- The Diamonds: High Edit Activity -->
+  <row>
+    <panel>
+      <title>💠 The Work in Progress - Most Edited Dashboards (Active Development)</title>
+      <table>
+        <search>
+          <query>| mstats sum(_value) as edits WHERE index=caca_metrics AND metric_name="dashboard.edits" BY pretty_name, app, user span=1d 
+| where _time >= relative_time(now(), "-30d")
+| stats sum(edits) as total_edits dc(user) as unique_editors by pretty_name, app
+| where total_edits > 0
+| lookup dashboard_registry pretty_name OUTPUT owner description
+| join type=left pretty_name 
+    [| mstats sum(_value) as views WHERE index=caca_metrics AND metric_name="dashboard.views" BY pretty_name span=1d
+    | where _time >= relative_time(now(), "-30d")
+    | stats sum(views) as views_30d by pretty_name]
+| fillnull value=0 views_30d
+| eval edit_ratio=round(total_edits/views_30d, 2)
+| eval status=case(
+    total_edits > 20, "🔥 Very Active Dev",
+    total_edits > 10, "⚡ Active Dev",
+    total_edits > 5, "🔧 Steady Dev",
+    1=1, "📝 Light Updates")
+| table pretty_name app total_edits unique_editors views_30d edit_ratio status owner description
+| rename pretty_name as "Dashboard", app as "App", total_edits as "Edits (30d)", unique_editors as "Editors", views_30d as "Views (30d)", edit_ratio as "Edit/View Ratio", status as "Dev Status", owner as "Owner", description as "Description"
+| sort -"Edits (30d)"</query>
+          <earliest>-30d@d</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">row</option>
+        <option name="count">20</option>
+        <format type="color" field="Dev Status">
+          <colorPalette type="map">{"🔥 Very Active Dev":#DC4E41,"⚡ Active Dev":#F8BE34,"🔧 Steady Dev":#0877a6,"📝 Light Updates":#53A051}</colorPalette>
+        </format>
+        <format type="number" field="Edits (30d)">
+          <option name="precision">0</option>
+        </format>
+        <format type="number" field="Editors">
+          <option name="precision">0</option>
+        </format>
+        <format type="number" field="Views (30d)">
+          <option name="precision">0</option>
+        </format>
+        <format type="number" field="Edit/View Ratio">
+          <option name="precision">2</option>
+        </format>
+        <drilldown>
+          <link target="_blank">/app/splunk-content-monitoring-console/dashboard_details?form.dashboard_name=$row.Dashboard$</link>
+        </drilldown>
+      </table>
+    </panel>
+  </row>
+  
+  <!-- Back to main -->
+  <row>
+    <panel>
+      <html>
+        <div style="text-align: center; padding: 20px;">
+          <a href="/app/splunk-content-monitoring-console/dashboard_leaderboard" class="btn btn-primary" style="margin: 5px;">← Back to Dashboard Leaderboard</a>
+          <a href="/app/splunk-content-monitoring-console/search" class="btn btn-secondary" style="margin: 5px;">Open in Search</a>
+        </div>
+        <div style="text-align: center; padding: 10px; color: #708794; font-style: italic;">
+          <p>💡 Pro Tip: Use the stale threshold dropdown to adjust what counts as "crap" in your environment.</p>
+          <p>🎯 Focus on: Delete ghosts, fix broken dashboards, investigate neglected content, and celebrate your gems!</p>
+        </div>
+      </html>
+    </panel>
+  </row>
+</form>

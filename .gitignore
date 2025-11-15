@@ -1,0 +1,39 @@
+# Local configurations
+local/*.conf
+local/*.meta
+local.meta
+
+# Development notes
+devnotes/
+devnotes/*
+
+# Python compiled files
+*.pyc
+__pycache__/
+*.pyo
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+*.tar.gz
+*.spl
+*.tgz
+dist/
+build/
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+tmp/
+temp/

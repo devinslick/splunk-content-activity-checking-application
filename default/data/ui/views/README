@@ -1,0 +1,20 @@
+Place your dashboard XML files in this directory.
+
+Each XML file will create a dashboard view in the app.
+
+Example dashboard structure:
+<form>
+  <label>My Dashboard</label>
+  <fieldset submitButton="false">
+  </fieldset>
+  <row>
+    <panel>
+      <title>Panel Title</title>
+      <table>
+        <search>
+          <query>index=_internal | stats count</query>
+        </search>
+      </table>
+    </panel>
+  </row>
+</form>

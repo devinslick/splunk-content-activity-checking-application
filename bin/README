@@ -1,0 +1,10 @@
+Place custom scripts here if needed in the future:
+- Python scripts for custom commands
+- Custom search commands
+- Modular inputs
+- Custom alert actions
+
+Currently, CACA uses pure SPL and REST API calls for maximum compatibility
+with all Splunk deployment types (Enterprise, Cloud, etc.)
+
+No custom scripts are required for core functionality.

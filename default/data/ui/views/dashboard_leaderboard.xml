@@ -1,0 +1,207 @@
+<form version="1.1">
+  <label>CACA - Dashboard Leaderboard</label>
+  <description>Content Activity Checking Application - Monitor all dashboard usage, health, and activity</description>
+  
+  <fieldset submitButton="false">
+    <input type="time" token="time_range">
+      <label>Time Range</label>
+      <default>
+        <earliest>-7d@h</earliest>
+        <latest>now</latest>
+      </default>
+    </input>
+  </fieldset>
+  
+  <!-- High-Level KPIs -->
+  <row>
+    <panel>
+      <title>Total Dashboards Monitored</title>
+      <single>
+        <search>
+          <query>| inputlookup dashboard_registry | stats dc(dashboard_uri) as count</query>
+          <earliest>$time_range.earliest$</earliest>
+          <latest>$time_range.latest$</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="colorMode">block</option>
+        <option name="rangeColors">["0x53a051","0x0877a6","0xf8be34","0xf1813f","0xdc4e41"]</option>
+        <option name="underLabel">Registered</option>
+      </single>
+    </panel>
+    
+    <panel>
+      <title>Total Views (7 days)</title>
+      <single>
+        <search>
+          <query>| mstats sum(_value) as total WHERE index=caca_metrics AND metric_name="dashboard.views" span=1d 
+| stats sum(total) as total_views 
+| eval total_views=round(total_views, 0)</query>
+          <earliest>-7d@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="colorMode">block</option>
+        <option name="rangeColors">["0xdc4e41","0xf1813f","0xf8be34","0x0877a6","0x53a051"]</option>
+        <option name="rangeValues">[0,100,500,1000]</option>
+        <option name="underLabel">Total Views</option>
+      </single>
+    </panel>
+    
+    <panel>
+      <title>Dashboards with Errors</title>
+      <single>
+        <search>
+          <query>| mstats sum(_value) as error_count WHERE index=caca_metrics AND metric_name="dashboard.errors" BY pretty_name span=1d 
+| stats sum(error_count) as total_errors by pretty_name 
+| where total_errors > 0 
+| stats dc(pretty_name) as dashboards_with_errors</query>
+          <earliest>-7d@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="colorMode">block</option>
+        <option name="rangeColors">["0x53a051","0xf8be34","0xf1813f","0xdc4e41"]</option>
+        <option name="rangeValues">[1,5,10]</option>
+        <option name="underLabel">With Errors</option>
+      </single>
+    </panel>
+    
+    <panel>
+      <title>Stale Dashboards</title>
+      <single>
+        <search>
+          <query>| mstats latest(_value) as last_view WHERE index=caca_metrics AND metric_name="dashboard.views" BY pretty_name 
+| eval days_since=round((now()-_time)/86400, 0) 
+| where days_since > 30 OR isnull(last_view)
+| stats count as stale_count</query>
+          <earliest>-90d@d</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="colorMode">block</option>
+        <option name="rangeColors">["0x53a051","0x0877a6","0xf8be34","0xf1813f"]</option>
+        <option name="rangeValues">[1,5,10]</option>
+        <option name="underLabel">Not Viewed in 30+ Days</option>
+      </single>
+    </panel>
+  </row>
+  
+  <!-- Main Leaderboard Table -->
+  <row>
+    <panel>
+      <title>Dashboard Activity Leaderboard</title>
+      <table>
+        <search>
+          <query>`get_all_dashboards_summary`
+| lookup dashboard_registry pretty_name OUTPUT owner description 
+| eval health_badge=case(
+    health_status=="healthy", "✓ Healthy",
+    health_status=="warning", "⚠ Warning",
+    health_status=="critical", "✗ Critical",
+    health_status=="stale", "☾ Stale",
+    1=1, health_status)
+| table pretty_name app views_7d edits_7d errors_7d health_badge owner description
+| rename pretty_name as "Dashboard Name", app as "App", views_7d as "Views (7d)", edits_7d as "Edits (7d)", errors_7d as "Errors (7d)", health_badge as "Health Status", owner as "Owner", description as "Description"
+| sort - "Views (7d)"</query>
+          <earliest>$time_range.earliest$</earliest>
+          <latest>$time_range.latest$</latest>
+        </search>
+        <option name="drilldown">row</option>
+        <option name="count">20</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="rowNumbers">true</option>
+        <option name="wrap">true</option>
+        <format type="color" field="Health Status">
+          <colorPalette type="map">{"✓ Healthy":#53A051,"⚠ Warning":#F8BE34,"✗ Critical":#DC4E41,"☾ Stale":#708794}</colorPalette>
+        </format>
+        <format type="number" field="Views (7d)">
+          <option name="precision">0</option>
+        </format>
+        <format type="number" field="Edits (7d)">
+          <option name="precision">0</option>
+        </format>
+        <format type="number" field="Errors (7d)">
+          <option name="precision">0</option>
+        </format>
+        <drilldown>
+          <link target="_blank">/app/splunk-content-monitoring-console/dashboard_details?form.dashboard_name=$row.Dashboard Name$</link>
+        </drilldown>
+      </table>
+    </panel>
+  </row>
+  
+  <!-- Trending Charts -->
+  <row>
+    <panel>
+      <title>Dashboard Views Trend (Last 7 Days)</title>
+      <chart>
+        <search>
+          <query>| mstats sum(_value) as views WHERE index=caca_metrics AND metric_name="dashboard.views" BY pretty_name span=1d 
+| timechart sum(views) as "Total Views" span=1d</query>
+          <earliest>-7d@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="charting.chart">line</option>
+        <option name="charting.axisTitleX.text">Time</option>
+        <option name="charting.axisTitleY.text">Views</option>
+        <option name="charting.legend.placement">bottom</option>
+        <option name="charting.drilldown">none</option>
+      </chart>
+    </panel>
+    
+    <panel>
+      <title>Error Trend (Last 7 Days)</title>
+      <chart>
+        <search>
+          <query>| mstats sum(_value) as errors WHERE index=caca_metrics AND metric_name="dashboard.errors" BY pretty_name span=1d 
+| timechart sum(errors) as "Total Errors" span=1d</query>
+          <earliest>-7d@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="charting.chart">column</option>
+        <option name="charting.axisTitleX.text">Time</option>
+        <option name="charting.axisTitleY.text">Errors</option>
+        <option name="charting.legend.placement">bottom</option>
+        <option name="charting.seriesColors">[0xDC4E41]</option>
+        <option name="charting.drilldown">none</option>
+      </chart>
+    </panel>
+  </row>
+  
+  <!-- Top Dashboards -->
+  <row>
+    <panel>
+      <title>Top 10 Most Viewed Dashboards</title>
+      <table>
+        <search>
+          <query>`get_top_dashboards(views)`
+| rename pretty_name as "Dashboard", app as "App", total as "Views (7d)", rank as "Rank"</query>
+          <earliest>-7d@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="count">10</option>
+        <format type="number" field="Views (7d)">
+          <option name="precision">0</option>
+        </format>
+      </table>
+    </panel>
+    
+    <panel>
+      <title>Top 10 Most Edited Dashboards</title>
+      <table>
+        <search>
+          <query>`get_top_dashboards(edits)`
+| rename pretty_name as "Dashboard", app as "App", total as "Edits (7d)", rank as "Rank"</query>
+          <earliest>-7d@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="count">10</option>
+        <format type="number" field="Edits (7d)">
+          <option name="precision">0</option>
+        </format>
+      </table>
+    </panel>
+  </row>
+</form>

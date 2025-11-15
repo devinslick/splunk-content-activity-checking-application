@@ -1,0 +1,57 @@
+# CACA - Content Activity Checking Application
+## Version 0.0.1 - Initial Beta Release
+
+### 🎯 What is CACA?
+
+CACA helps Splunk administrators and content creators answer critical questions:
+- "Is anyone using this dashboard I built?"
+- "Which dashboards are most critical to our users?"
+- "Is this dashboard performing well or throwing errors?"
+- "Which dashboards are safe to archive or delete?"
+
+### 📦 Package Contents
+
+This release includes:
+- ✅ 3 dashboards (Leaderboard, Poop Deck, Details)
+- ✅ 4 scheduled searches for data collection
+- ✅ 5 search macros for easy querying
+- ✅ Metrics index configuration
+- ✅ Dashboard registry with auto-discovery
+- ✅ Badge templates for embedding in dashboards
+- ✅ Complete documentation
+
+### 🚀 Quick Start
+
+**Installation:** 5 minutes  
+**Setup:** 10 minutes  
+**First Data:** 15-30 minutes
+
+1. Install the app via Splunk Web
+2. Run the registry population search
+3. Enable the 4 scheduled searches
+4. Start monitoring your dashboards!
+
+### 💡 Key Features
+
+- **100% SPL-based** - No Python scripts, works everywhere including Splunk Cloud
+- **Lightweight** - Low-priority searches won't impact performance
+- **Automated** - Discovers dashboards and collects metrics automatically
+- **Actionable** - Clear recommendations on what to keep, fix, or delete
+
+### ⚠️ Important Notes
+
+- Scheduled searches are **disabled by default** - you must enable them after setup
+- Data collection starts from install time (no historical data)
+- Requires access to `_internal` and `_audit` indexes
+
+### 📚 Full Documentation
+
+See [RELEASE-NOTES.md](RELEASE-NOTES.md) for complete details.
+
+### 🐛 Found a Bug?
+
+Please report issues at: https://github.com/devinslick/splunk-content-monitoring-console/issues
+
+---
+
+**Happy monitoring! 💩📊**

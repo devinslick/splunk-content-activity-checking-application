@@ -1,0 +1,195 @@
+<form version="1.1">
+  <label>CACA - Dashboard Details</label>
+  <description>Detailed metrics for a specific dashboard</description>
+  
+  <fieldset submitButton="true">
+    <input type="text" token="dashboard_name">
+      <label>Dashboard Name</label>
+      <default></default>
+    </input>
+    <input type="time" token="time_range">
+      <label>Time Range</label>
+      <default>
+        <earliest>-30d@h</earliest>
+        <latest>now</latest>
+      </default>
+    </input>
+  </fieldset>
+  
+  <!-- Dashboard Info Header -->
+  <row>
+    <panel>
+      <title>Dashboard Information</title>
+      <table>
+        <search>
+          <query>| inputlookup dashboard_registry 
+| search pretty_name="$dashboard_name$" 
+| table pretty_name app owner description status
+| rename pretty_name as "Dashboard Name", app as "App", owner as "Owner", description as "Description", status as "Status"</query>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="count">1</option>
+      </table>
+    </panel>
+  </row>
+  
+  <!-- Key Metrics -->
+  <row>
+    <panel>
+      <title>Total Views (Last 7 Days)</title>
+      <single>
+        <search>
+          <query>| mstats sum(_value) as total WHERE index=caca_metrics AND pretty_name="$dashboard_name$" AND metric_name="dashboard.views" span=1d 
+| where _time >= relative_time(now(), "-7d")
+| stats sum(total) as total_views</query>
+          <earliest>$time_range.earliest$</earliest>
+          <latest>$time_range.latest$</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="numberPrecision">0</option>
+        <option name="underLabel">Views (7d)</option>
+      </single>
+    </panel>
+    
+    <panel>
+      <title>Total Edits (Last 30 Days)</title>
+      <single>
+        <search>
+          <query>| mstats sum(_value) as total WHERE index=caca_metrics AND pretty_name="$dashboard_name$" AND metric_name="dashboard.edits" span=1d 
+| where _time >= relative_time(now(), "-30d")
+| stats sum(total) as total_edits</query>
+          <earliest>$time_range.earliest$</earliest>
+          <latest>$time_range.latest$</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="numberPrecision">0</option>
+        <option name="underLabel">Edits (30d)</option>
+      </single>
+    </panel>
+    
+    <panel>
+      <title>Total Errors</title>
+      <single>
+        <search>
+          <query>| mstats sum(_value) as total WHERE index=caca_metrics AND pretty_name="$dashboard_name$" AND metric_name="dashboard.errors" span=1d 
+| stats sum(total) as total_errors</query>
+          <earliest>$time_range.earliest$</earliest>
+          <latest>$time_range.latest$</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="numberPrecision">0</option>
+        <option name="colorMode">block</option>
+        <option name="rangeColors">["0x53a051","0xf8be34","0xdc4e41"]</option>
+        <option name="rangeValues">[1,10]</option>
+        <option name="underLabel">Errors</option>
+      </single>
+    </panel>
+    
+    <panel>
+      <title>Last Viewed</title>
+      <single>
+        <search>
+          <query>`get_dashboard_last_viewed("$dashboard_name$")`
+| eval display=if(isnull(days_since_view), "Never", days_since_view." days ago")
+| table display</query>
+          <earliest>-90d@d</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="underLabel">Last Activity</option>
+      </single>
+    </panel>
+  </row>
+  
+  <!-- Activity Trends -->
+  <row>
+    <panel>
+      <title>View Trend Over Time</title>
+      <chart>
+        <search>
+          <query>| mstats sum(_value) as views WHERE index=caca_metrics AND pretty_name="$dashboard_name$" AND metric_name="dashboard.views" span=1d 
+| timechart sum(views) as Views span=1d</query>
+          <earliest>$time_range.earliest$</earliest>
+          <latest>$time_range.latest$</latest>
+        </search>
+        <option name="charting.chart">area</option>
+        <option name="charting.axisTitleX.text">Date</option>
+        <option name="charting.axisTitleY.text">Views</option>
+        <option name="charting.seriesColors">[0x0877a6]</option>
+        <option name="charting.drilldown">none</option>
+      </chart>
+    </panel>
+  </row>
+  
+  <!-- User Activity Breakdown -->
+  <row>
+    <panel>
+      <title>Top Users by Views</title>
+      <table>
+        <search>
+          <query>| mstats sum(_value) as views WHERE index=caca_metrics AND pretty_name="$dashboard_name$" AND metric_name="dashboard.views" BY user span=1d 
+| stats sum(views) as total_views by user 
+| sort -total_views 
+| head 10
+| rename user as "User", total_views as "Total Views"</query>
+          <earliest>$time_range.earliest$</earliest>
+          <latest>$time_range.latest$</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="count">10</option>
+        <format type="number" field="Total Views">
+          <option name="precision">0</option>
+        </format>
+      </table>
+    </panel>
+    
+    <panel>
+      <title>Edit History</title>
+      <table>
+        <search>
+          <query>| mstats sum(_value) as edits WHERE index=caca_metrics AND pretty_name="$dashboard_name$" AND metric_name="dashboard.edits" BY user, activity_type span=1h 
+| eval edit_time=strftime(_time, "%Y-%m-%d %H:%M") 
+| stats sum(edits) as edit_count by edit_time user activity_type 
+| sort -edit_time 
+| rename edit_time as "Time", user as "User", activity_type as "Action", edit_count as "Count"</query>
+          <earliest>$time_range.earliest$</earliest>
+          <latest>$time_range.latest$</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="count">10</option>
+      </table>
+    </panel>
+  </row>
+  
+  <!-- Error Details -->
+  <row>
+    <panel>
+      <title>Error Details</title>
+      <table>
+        <search>
+          <query>| mstats sum(_value) as error_count WHERE index=caca_metrics AND pretty_name="$dashboard_name$" AND metric_name="dashboard.errors" BY severity span=1h 
+| eval error_time=strftime(_time, "%Y-%m-%d %H:%M") 
+| stats sum(error_count) as total_errors by error_time severity 
+| sort -error_time 
+| rename error_time as "Time", severity as "Severity", total_errors as "Error Count"</query>
+          <earliest>$time_range.earliest$</earliest>
+          <latest>$time_range.latest$</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="count">20</option>
+        <format type="color" field="Severity">
+          <colorPalette type="map">{"error":#DC4E41,"warn":#F8BE34}</colorPalette>
+        </format>
+      </table>
+    </panel>
+  </row>
+  
+  <!-- Back to Leaderboard -->
+  <row>
+    <panel>
+      <html>
+        <a href="/app/splunk-content-monitoring-console/dashboard_leaderboard" class="btn btn-primary">← Back to Dashboard Leaderboard</a>
+      </html>
+    </panel>
+  </row>
+</form>

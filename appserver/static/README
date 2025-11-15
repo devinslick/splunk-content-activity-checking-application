@@ -1,0 +1,7 @@
+Place static files here:
+- CSS files
+- JavaScript files
+- Images
+- Other static assets
+
+These files will be accessible via the /static/ URL path.

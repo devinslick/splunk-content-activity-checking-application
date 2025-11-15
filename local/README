@@ -1,0 +1,8 @@
+This directory is for local configurations.
+It should typically be empty in your source repository.
+
+Local configurations override default configurations and are
+specific to each Splunk installation.
+
+Do not commit actual configuration files to version control unless
+they are example/template files.

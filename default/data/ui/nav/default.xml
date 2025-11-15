@@ -1,0 +1,8 @@
+<nav search_view="search" color="#0877a6">
+  <view name="dashboard_leaderboard" default='true' />
+  <view name="poop_deck" />
+  <view name="dashboard_details" />
+  <view name="search" />
+  <view name="dashboards" />
+  <view name="reports" />
+</nav>

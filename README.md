@@ -1,0 +1,365 @@
+# CACA - Content Activity Checking Application
+
+## Overview
+
+**CACA (Content Activity Checking Application)** is a Splunk app designed to help teams track the caca in their environment: highlighting usage, health, and lifecycle of their Splunk dashboards and content. It provides clear, metric-driven insights to help answer critical questions:
+
+- **"Is anyone using this dashboard I built?"** - Track views and user engagement
+- **"Which dashboards are most critical to our users?"** - Identify high-value content
+- **"Is this dashboard actually performing well?"** - Monitor health and errors
+- **"Which dashboards are safe to archive or delete?"** - Find unused or stale content
+- **"How do we demonstrate the value of our team's work?"** - Quantify dashboard impact with real metrics
+
+### Why This App?
+
+While the Splunk Monitoring Console (DMC) focuses on system-level health and performance, CACA fills a different need:
+
+- **DMC is for Admins**: Tracks scheduler load, memory, and infrastructure health
+- **CACA is for Creators & Users**: Answers "Is my content useful and working well?"
+
+## Features
+
+### Current Features
+
+#### Dashboard Monitoring
+- **Automated Discovery**: Automatically discovers and catalogs all dashboards across your Splunk environment
+- **Usage Tracking**: Track how many times each dashboard is viewed, by which users, and when
+- **Edit History**: Monitor when dashboards are created or modified, and by whom
+- **Health Monitoring**: Detect and track dashboard errors and warnings from internal logs
+- **Stale Dashboard Detection**: Identify dashboards that haven't been accessed in 30+ days
+
+#### Metrics & Analytics
+- **Efficient Metrics Store**: Uses Splunk's native metrics index for high-performance, low-storage-impact data collection
+- **Real-Time Collection**: Scheduled searches run every 5-15 minutes for near real-time metrics
+- **Historical Trending**: Track usage patterns and trends over time (up to 1 year by default)
+- **Aggregate Statistics**: View total views, edits, and errors across all content
+
+#### Visualization & Reporting
+- **Dashboard Leaderboard**: Centralized view showing all monitored dashboards with sortable metrics
+- **Detailed Analytics**: Drill down into individual dashboards for comprehensive insights
+- **Health Status Indicators**: Color-coded status badges (Healthy, Warning, Critical, Stale)
+- **Top Performers**: Identify most-viewed and most-edited dashboards
+- **User Activity Breakdown**: See which users are accessing specific dashboards
+
+#### Embeddable Badges
+- **GitHub-Style Badges**: Add usage and health metrics directly to your dashboards
+- **Customizable Templates**: Pre-built XML snippets for quick badge integration
+- **Multiple Badge Styles**: Choose from compact single-stat or detailed multi-metric badges
+- **Self-Service**: Dashboard owners can add badges without admin intervention
+
+#### Search Macros
+- **Reusable Queries**: Pre-built macros for common metrics queries
+- **Parameterized Searches**: Easily query specific dashboards or time ranges
+- **Consistent Results**: Standardized queries across the app
+
+### Architecture
+
+The app uses a three-stage pipeline for efficiency:
+
+1. **Collect**: Scheduled searches analyze Splunk's internal logs (`_internal`, `_audit`) to track views, edits, and errors
+2. **Store**: Metrics are written to a dedicated metrics index using `mcollect` for optimal performance
+3. **Query**: Fast retrieval via `mstats` command and reusable search macros
+
+**Note on Scheduled Searches**: CACA is powered by lightweight scheduled searches that run at the following intervals:
+- Dashboard views: Every 5 minutes
+- Dashboard edits: Every 10 minutes  
+- Dashboard health: Every 15 minutes
+- Registry updates: Daily at 2 AM
+
+All searches are configured with **low priority** to ensure they do not impact regular user searches or system performance. The searches use efficient `mcollect` commands to write directly to a metrics index, minimizing resource consumption.
+
+## Status
+DRAFT - Work in Progress
+
+## Requirements
+
+- Splunk Enterprise 8.0 or later
+- Access to `_internal` and `_audit` indexes
+- Permissions to create metrics indexes and scheduled searches
+
+## Installation
+
+### Method 1: Via Splunk Web (Recommended)
+
+1. Download the latest release package (`.spl` or `.tar.gz`)
+2. In Splunk Web, navigate to **Apps → Manage Apps**
+3. Click **Install app from file**
+4. Upload the package file
+5. Click **Upload**
+6. Restart Splunk if prompted
+
+### Method 2: Manual Installation
+
+1. Extract the app package to `$SPLUNK_HOME/etc/apps/`
+2. Ensure the directory is named `splunk-content-monitoring-console`
+3. Restart Splunk:
+   ```bash
+   $SPLUNK_HOME/bin/splunk restart
+   ```
+
+## Initial Setup
+
+After installation, follow these steps to initialize CACA:
+
+### 1. Verify Index Creation
+
+The `caca_metrics` index should be created automatically. Verify by running:
+
+```spl
+| eventcount summarize=false index=caca_metrics
+```
+
+### 2. Populate Dashboard Registry
+
+Run the registry update search to populate the dashboard registry:
+
+```spl
+| rest /services/data/ui/views splunk_server=local count=0 
+| search isDashboard=1 OR isVisible=1 
+| eval dashboard_uri="/app/".eai:acl.app."/".title 
+| eval pretty_name=coalesce(label, title) 
+| eval app=eai:acl.app 
+| eval owner=eai:acl.owner 
+| eval description=coalesce(eai:data, "") 
+| eval status="active" 
+| table dashboard_uri pretty_name app owner description status 
+| outputlookup dashboard_registry.csv
+```
+
+This will scan your Splunk environment and populate the `dashboard_registry.csv` lookup with all discovered dashboards.
+
+**Verify the registry:**
+
+```spl
+| inputlookup dashboard_registry | stats count
+```
+
+### 3. Enable Scheduled Searches
+
+Navigate to **Settings → Searches, reports, and alerts** and enable these searches:
+
+- **Dashboard Views - Metrics Collector** (runs every 5 minutes)
+- **Dashboard Edits - Metrics Collector** (runs every 10 minutes)
+- **Dashboard Health - Metrics Collector** (runs every 15 minutes)
+- **Dashboard Registry - Auto Update** (runs daily at 2 AM)
+
+**Important:** These searches are disabled by default to prevent errors before the registry is populated. Enable them only after completing steps 1 and 2 above.
+
+### 4. Wait for Data Collection
+
+Allow 15-30 minutes for the initial data collection to populate the metrics index.
+
+**Verify metrics are being collected:**
+
+```spl
+| mstats count WHERE index=caca_metrics BY metric_name
+```
+
+## Usage
+
+### Main Dashboard - Leaderboard
+
+Navigate to **CACA → Dashboard Leaderboard** to view:
+
+- **High-Level KPIs**: Total dashboards, views, errors, and stale dashboards
+- **Activity Leaderboard Table**: Sortable list of all dashboards with metrics
+- **Trending Charts**: Views and errors over time
+- **Top Dashboards**: Most viewed and most edited dashboards
+
+### Dashboard Details
+
+Click any dashboard in the leaderboard to view detailed metrics:
+
+- Total views, edits, and errors
+- Activity trends over time
+- Top users by views
+- Edit history
+- Error details with severity
+
+### Adding Badges to Your Dashboards
+
+You can add usage badges to any dashboard. See the **Badge Template** (`default/data/ui/views/BADGE_TEMPLATE.md`) for instructions.
+
+**Quick Example:**
+
+Add this panel to your dashboard XML:
+
+```xml
+<row>
+  <panel>
+    <title>Dashboard Views (7d)</title>
+    <single>
+      <search>
+        <query>| mstats sum(_value) as total WHERE index=caca_metrics AND pretty_name="YOUR_DASHBOARD_NAME" AND metric_name="dashboard.views" span=1d 
+| where _time >= relative_time(now(), "-7d")
+| stats sum(total) as views</query>
+        <earliest>-7d</earliest>
+        <latest>now</latest>
+      </search>
+      <option name="underLabel">Views (7d)</option>
+    </single>
+  </panel>
+</row>
+```
+
+Replace `YOUR_DASHBOARD_NAME` with your dashboard's pretty name from the registry.
+
+### Using Search Macros
+
+CACA provides several search macros for easy querying:
+
+#### Get dashboard stats:
+```spl
+`get_dashboard_stats("My Dashboard Name")`
+```
+
+#### Get all dashboards summary:
+```spl
+`get_all_dashboards_summary`
+```
+
+#### Get top dashboards by views:
+```spl
+`get_top_dashboards(views)`
+```
+
+#### Get last viewed time:
+```spl
+`get_dashboard_last_viewed("My Dashboard Name")`
+```
+
+## Configuration
+
+### Adjusting Collection Schedules
+
+Edit `default/savedsearches.conf` or use Splunk Web to modify:
+
+- **View tracking frequency**: Default every 5 minutes
+- **Edit tracking frequency**: Default every 10 minutes
+- **Health tracking frequency**: Default every 15 minutes
+- **Registry update frequency**: Default daily at 2 AM
+
+### Customizing Metrics Retention
+
+Edit `default/indexes.conf` to adjust retention:
+
+```ini
+[caca_metrics]
+frozenTimePeriodInSecs = 31536000  # 1 year (default)
+```
+
+### Excluding Dashboards from Monitoring
+
+Edit `lookups/dashboard_registry.csv` and set `status=inactive` for dashboards you want to exclude from collection.
+
+## Troubleshooting
+
+### No Data Appearing
+
+1. **Check scheduled searches are running:**
+   ```spl
+   index=_internal source=*scheduler.log savedsearch_name="Dashboard*Metrics*"
+   ```
+
+2. **Verify metrics index exists:**
+   ```spl
+   | eventcount summarize=false index=caca_metrics
+   ```
+
+3. **Check lookup is populated:**
+   ```spl
+   | inputlookup dashboard_registry
+   ```
+
+### Dashboard Not Appearing in Registry
+
+Run the registry update search manually:
+```spl
+| rest /services/data/ui/views splunk_server=local count=0 
+| search isDashboard=1 OR isVisible=1 
+| eval dashboard_uri="/app/".eai:acl.app."/".title 
+| eval pretty_name=coalesce(label, title) 
+| eval app=eai:acl.app 
+| eval owner=eai:acl.owner 
+| eval status="active" 
+| table dashboard_uri pretty_name app owner status 
+| outputlookup dashboard_registry.csv
+```
+
+Or add it manually to `lookups/dashboard_registry.csv`.
+
+### Metrics Showing Zero
+
+- Ensure dashboards have been accessed since CACA was installed
+- Check that scheduled searches have appropriate permissions
+- Verify `_internal` and `_audit` indexes are accessible
+
+## Performance Considerations
+
+- The app uses metrics indexes which are highly efficient
+- Scheduled searches are lightweight and use `mcollect` for optimal performance
+- Default retention is 1 year; adjust based on your needs
+- Registry auto-updates daily; increase frequency if dashboards change often
+
+## Support
+
+Feel free to open a github issue or contribute with a pull request!
+
+## Roadmap
+
+### Planned Features
+
+#### Saved Search & Alert Monitoring
+- **Scheduled Search Tracking**: Monitor execution frequency, run time, and success rates for all saved searches
+- **Alert Effectiveness Metrics**: Track alert trigger frequency, action execution, and alert fatigue indicators
+- **Report Usage Analytics**: Identify which scheduled reports are being used vs. those running unnecessarily
+- **Performance Metrics**: Track search execution times, result counts, and resource consumption
+- **Owner Assignment**: Link saved searches to owners for accountability
+- **Stale Search Detection**: Identify searches that never trigger alerts or whose results are never viewed
+- **Cost Analysis**: Calculate scheduler load and resource cost per saved search
+
+#### Additional Knowledge Object Support
+- **Lookup Table Monitoring**: Track lookup file usage, size, and update frequency
+- **Data Model Tracking**: Monitor data model acceleration, search usage, and performance
+- **Field Extraction Usage**: Identify which field extractions are actually being used in searches
+- **Macro Utilization**: Track which search macros are referenced and where
+- **Tag & Event Type Usage**: Identify unused tags and event types for cleanup
+
+#### Enhanced Analytics & Insights
+- **Predictive Analytics**: Forecast future dashboard usage trends
+- **Anomaly Detection**: Alert on unusual patterns (sudden usage drops, error spikes)
+- **Dependency Mapping**: Visualize relationships between dashboards, searches, and data sources
+- **Content Lifecycle Management**: Automated workflows for deprecating unused content
+- **ROI Metrics**: Calculate value/cost ratios for content creation efforts
+
+#### User Experience Improvements
+- **Setup Wizard**: Guided initial configuration and onboarding
+- **Custom Badge Visualization**: Develop native custom visualization for badges (no XML editing required)
+- **Email Digests**: Scheduled reports showing content health summaries
+- **Integration with ITSI**: Surface content metrics in ITSI service monitoring
+- **REST API Endpoints**: Programmatic access to content metrics for external tools
+- **Mobile-Friendly Views**: Responsive dashboards for mobile devices
+
+#### Advanced Features
+- **Multi-Tenant Support**: Track content usage across multiple business units or teams
+- **Compliance Reporting**: Demonstrate content governance and audit trails
+- **A/B Testing Support**: Compare usage metrics before/after dashboard changes
+- **Content Recommendations**: Suggest related or popular dashboards to users
+- **Auto-Archival**: Automatically disable or archive stale content with admin approval
+
+### Community Contributions Welcome!
+
+We welcome contributions for any of these roadmap items or new feature ideas. Please:
+1. Open an issue to discuss the feature before starting work
+2. Follow the existing code patterns and architecture
+3. Include documentation and examples
+4. Add test data or validation steps
+
+## Release Notes
+
+### Version 0.0.1
+- Initial draft
+
+## License
+
+MIT License
