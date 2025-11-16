@@ -1,5 +1,11 @@
 # CACA - Content Activity Checking Application
 
+[![Validate App](https://github.com/devinslick/splunk-content-monitoring-console/actions/workflows/validate.yml/badge.svg)](https://github.com/devinslick/splunk-content-monitoring-console/actions/workflows/validate.yml)
+[![Splunkbase](https://img.shields.io/badge/Splunkbase-Not%20Published-red)](https://splunkbase.splunk.com/)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+
+> **Note:** The "Validate App" badge shows the current AppInspect status. Green = passing with 0 failures.
+
 ## Overview
 
 **CACA (Content Activity Checking Application)** is a Splunk app designed to help teams track the caca in their environment: highlighting usage, health, and lifecycle of their Splunk dashboards and content. It provides clear, metric-driven insights to help answer critical questions:
