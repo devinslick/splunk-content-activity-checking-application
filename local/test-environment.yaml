@@ -3,8 +3,47 @@
 # Customize the namespace, ingress, and other settings for your environment
 #
 # To retrieve the generated Splunk password after deployment:
-#   kubectl get secret splunk-secret -n <your-namespace> -o jsonpath='{.data.password}' | base64 -d
+#   kubectl get secret splunk-secret -n splunk-caca -o jsonpath='{.data.password}' | base64 -d
 
+---
+# Namespace for CACA test environment
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: splunk-caca
+---
+# ServiceAccount for the password generator job
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: splunk-password-generator
+  namespace: splunk-caca
+---
+# Role to allow creating/updating secrets
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: splunk-secret-manager
+  namespace: splunk-caca
+rules:
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get", "create", "update", "patch"]
+---
+# RoleBinding to grant the service account permission
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: splunk-password-generator
+  namespace: splunk-caca
+subjects:
+- kind: ServiceAccount
+  name: splunk-password-generator
+  namespace: splunk-caca
+roleRef:
+  kind: Role
+  name: splunk-secret-manager
+  apiGroup: rbac.authorization.k8s.io
 ---
 # Job to generate a random password for Splunk
 # This runs before the deployment and creates/updates the secret with a random password
@@ -12,12 +51,12 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   name: splunk-password-generator
-  namespace: default  # Change to your namespace
+  namespace: splunk-caca
 spec:
   ttlSecondsAfterFinished: 100  # Auto-cleanup after 100 seconds
   template:
     spec:
-      serviceAccountName: default  # Ensure the service account has permission to create secrets
+      serviceAccountName: splunk-password-generator  # Use the service account with permissions
       restartPolicy: Never
       containers:
       - name: generate-password
@@ -37,13 +76,27 @@ spec:
           echo "Password secret created/updated successfully"
           echo "Retrieve with: kubectl get secret splunk-secret -o jsonpath='{.data.password}' | base64 -d"
 ---
+# PersistentVolumeClaim for Splunk data
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: splunk
+  namespace: splunk-caca
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi  # Adjust size as needed
+  # storageClassName: your-storage-class  # Uncomment and specify if needed
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: splunk
   labels:
     app: splunk
-  namespace: default  # Change to your namespace
+  namespace: splunk-caca
 spec:
   replicas: 1
   strategy:
@@ -185,7 +238,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: splunk-http
-  namespace: default  # Change to your namespace
+  namespace: splunk-caca
   labels:
     app: splunk
 spec:
@@ -200,7 +253,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: splunk-hec
-  namespace: default  # Change to your namespace
+  namespace: splunk-caca
   labels:
     app: splunk
 spec:
@@ -215,7 +268,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: splunk-indexer
-  namespace: default  # Change to your namespace
+  namespace: splunk-caca
   labels:
     app: splunk
 spec:

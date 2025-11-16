@@ -1,0 +1,21 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: splunk
+  namespace: splunk-caca
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - splunk.domain.com
+  rules:
+  - host: splunk.domain.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: splunk-http
+            port:
+              number: 8000
