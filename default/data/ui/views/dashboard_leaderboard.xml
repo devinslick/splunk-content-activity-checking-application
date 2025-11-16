@@ -115,9 +115,9 @@
 | eval avg_load_time_7d=round(avg_load_time_7d, 0)
 | eval perf_rating=case(
     avg_load_time_7d == 0, "-",
-    avg_load_time_7d < 1000, "⚡ Fast",
-    avg_load_time_7d < 3000, "✓ Good",
-    avg_load_time_7d < 5000, "⚠ Slow",
+    avg_load_time_7d &lt; 1000, "⚡ Fast",
+    avg_load_time_7d &lt; 3000, "✓ Good",
+    avg_load_time_7d &lt; 5000, "⚠ Slow",
     1=1, "✗ Very Slow")
 | eval health_badge=case(
     health_status=="healthy", "✓ Healthy",

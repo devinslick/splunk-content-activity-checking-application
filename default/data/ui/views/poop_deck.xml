@@ -89,7 +89,7 @@
           <query>| mstats avg(avg_load_time) as avg_load WHERE index=caca_metrics AND metric_name="dashboard.load_time" BY pretty_name span=1d 
 | where _time >= relative_time(now(), "-7d")
 | stats avg(avg_load) as avg_load_time by pretty_name
-| where avg_load_time > 5000
+| where avg_load_time &gt; 5000
 | stats count as slow_count</query>
           <earliest>-7d@d</earliest>
           <latest>now</latest>
@@ -144,7 +144,7 @@
 | sort -engagement_score 
 | head 20
 | lookup dashboard_registry pretty_name OUTPUT owner description
-| eval health=case(errors_30d==0, "✓", errors_30d<5, "⚠", 1=1, "✗")
+| eval health=case(errors_30d==0, "✓", errors_30d&lt;5, "⚠", 1=1, "✗")
 | table pretty_name app views_30d edits_30d errors_30d engagement_score health owner description
 | rename pretty_name as "Dashboard", app as "App", views_30d as "Views (30d)", edits_30d as "Edits (30d)", errors_30d as "Errors (30d)", engagement_score as "Score", health as "Health", owner as "Owner", description as "Description"</query>
           <earliest>-30d@d</earliest>
@@ -288,7 +288,7 @@
           <query>| mstats avg(avg_load_time) as avg_load, max(max_load_time) as max_load WHERE index=caca_metrics AND metric_name="dashboard.load_time" BY pretty_name, app span=1d 
 | where _time >= relative_time(now(), "-7d")
 | stats avg(avg_load) as avg_load_time, max(max_load) as max_load_time by pretty_name, app
-| where avg_load_time > 3000
+| where avg_load_time &gt; 3000
 | eval avg_load_time=round(avg_load_time, 0)
 | eval max_load_time=round(max_load_time, 0)
 | lookup dashboard_registry pretty_name OUTPUT owner description
@@ -298,19 +298,19 @@
     | stats sum(views) as views_7d by pretty_name]
 | fillnull value=0 views_7d
 | eval performance_level=case(
-    avg_load_time > 10000, "🔥 Critical",
-    avg_load_time > 7000, "❌ Very Slow",
-    avg_load_time > 5000, "⚠️ Slow",
+    avg_load_time &gt; 10000, "🔥 Critical",
+    avg_load_time &gt; 7000, "❌ Very Slow",
+    avg_load_time &gt; 5000, "⚠️ Slow",
     1=1, "😐 Sluggish")
 | eval user_impact=case(
-    views_7d > 100 AND avg_load_time > 5000, "HIGH - Poor user experience",
-    views_7d > 10 AND avg_load_time > 5000, "MEDIUM - Affecting users",
-    avg_load_time > 10000, "HIGH - Unacceptably slow",
+    views_7d &gt; 100 AND avg_load_time &gt; 5000, "HIGH - Poor user experience",
+    views_7d &gt; 10 AND avg_load_time &gt; 5000, "MEDIUM - Affecting users",
+    avg_load_time &gt; 10000, "HIGH - Unacceptably slow",
     1=1, "LOW - Limited impact")
 | eval recommendation=case(
-    avg_load_time > 10000, "URGENT: Optimize or disable",
-    avg_load_time > 7000, "High priority optimization",
-    avg_load_time > 5000, "Should optimize",
+    avg_load_time &gt; 10000, "URGENT: Optimize or disable",
+    avg_load_time &gt; 7000, "High priority optimization",
+    avg_load_time &gt; 5000, "Should optimize",
     1=1, "Consider optimization")
 | table pretty_name app avg_load_time max_load_time views_7d performance_level user_impact recommendation owner description
 | rename pretty_name as "Dashboard", app as "App", avg_load_time as "Avg Load (ms)", max_load_time as "Max Load (ms)", views_7d as "Views (7d)", performance_level as "Performance", user_impact as "Impact", recommendation as "Recommendation", owner as "Owner", description as "Description"
@@ -358,15 +358,15 @@
 | eval {metric_type}=total 
 | stats values(app) as app sum(views) as views_30d sum(edits) as edits_30d by pretty_name 
 | fillnull value=0 views_30d edits_30d
-| where views_30d > 0 AND views_30d < 20
+| where views_30d > 0 AND views_30d &lt; 20
 | lookup dashboard_registry pretty_name OUTPUT owner description
 | join type=left pretty_name 
     [| mstats latest(_value) as last_view WHERE index=caca_metrics AND metric_name="dashboard.views" BY pretty_name 
     | eval last_viewed=strftime(_time, "%Y-%m-%d")]
 | eval avg_views_per_day=round(views_30d/30, 1)
 | eval status=case(
-    views_30d < 5, "😴 Barely Used",
-    views_30d < 10, "🥱 Rarely Used",
+    views_30d &lt; 5, "😴 Barely Used",
+    views_30d &lt; 10, "🥱 Rarely Used",
     1=1, "😐 Occasionally Used")
 | table pretty_name app views_30d avg_views_per_day edits_30d last_viewed status owner description
 | rename pretty_name as "Dashboard", app as "App", views_30d as "Views (30d)", avg_views_per_day as "Avg/Day", edits_30d as "Edits (30d)", last_viewed as "Last Viewed", status as "Status", owner as "Owner", description as "Description"
