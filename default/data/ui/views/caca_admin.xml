@@ -1,0 +1,416 @@
+<form version="1.1">
+  <label>CACA Admin Dashboard</label>
+  <description>Administrative control panel for dashboard management - Edit, move, delete, and change permissions</description>
+  
+  <fieldset submitButton="true" autoRun="false">
+    <input type="text" token="name_filter">
+      <label>Dashboard Name Filter</label>
+      <default>*</default>
+      <initialValue>*</initialValue>
+    </input>
+    
+    <input type="multiselect" token="app_filter">
+      <label>Filter by App</label>
+      <choice value="*">All Apps</choice>
+      <default>*</default>
+      <initialValue>*</initialValue>
+      <fieldForLabel>app</fieldForLabel>
+      <fieldForValue>app</fieldForValue>
+      <search>
+        <query>| inputlookup dashboard_registry | stats count by app | fields app</query>
+        <earliest>-24h@h</earliest>
+        <latest>now</latest>
+      </search>
+      <valuePrefix>app="</valuePrefix>
+      <valueSuffix>"</valueSuffix>
+      <delimiter> OR </delimiter>
+    </input>
+    
+    <input type="multiselect" token="owner_filter">
+      <label>Filter by Owner</label>
+      <choice value="*">All Owners</choice>
+      <default>*</default>
+      <initialValue>*</initialValue>
+      <fieldForLabel>owner</fieldForLabel>
+      <fieldForValue>owner</fieldForValue>
+      <search>
+        <query>| inputlookup dashboard_registry | stats count by owner | fields owner</query>
+        <earliest>-24h@h</earliest>
+        <latest>now</latest>
+      </search>
+      <valuePrefix>owner="</valuePrefix>
+      <valueSuffix>"</valueSuffix>
+      <delimiter> OR </delimiter>
+    </input>
+    
+    <input type="multiselect" token="health_filter">
+      <label>Filter by Health Status</label>
+      <choice value="*">All Status</choice>
+      <choice value="healthy">✓ Healthy</choice>
+      <choice value="warning">⚠ Warning</choice>
+      <choice value="critical">✗ Critical</choice>
+      <choice value="stale">☾ Stale</choice>
+      <default>*</default>
+      <initialValue>*</initialValue>
+      <valuePrefix>health_status="</valuePrefix>
+      <valueSuffix>"</valueSuffix>
+      <delimiter> OR </delimiter>
+    </input>
+    
+    <input type="multiselect" token="perf_filter">
+      <label>Filter by Performance</label>
+      <choice value="*">All Performance</choice>
+      <choice value="fast">⚡ Fast (&lt;1s)</choice>
+      <choice value="good">✓ Good (1-3s)</choice>
+      <choice value="slow">⚠ Slow (3-5s)</choice>
+      <choice value="very_slow">✗ Very Slow (&gt;5s)</choice>
+      <default>*</default>
+      <initialValue>*</initialValue>
+      <delimiter> OR </delimiter>
+    </input>
+    
+    <input type="time" token="time_range">
+      <label>Metrics Time Range</label>
+      <default>
+        <earliest>-7d@h</earliest>
+        <latest>now</latest>
+      </default>
+    </input>
+  </fieldset>
+  
+  <!-- Summary KPIs -->
+  <row>
+    <panel>
+      <title>Filtered Dashboard Count</title>
+      <single>
+        <search>
+          <query>`get_all_dashboards_summary`
+| lookup dashboard_registry pretty_name OUTPUT owner description dashboard_uri
+| search pretty_name="$name_filter$" $app_filter$ $owner_filter$ $health_filter$
+| eval perf_category=case(
+    avg_load_time_7d == 0, "unknown",
+    avg_load_time_7d &lt; 1000, "fast",
+    avg_load_time_7d &lt; 3000, "good",
+    avg_load_time_7d &lt; 5000, "slow",
+    1=1, "very_slow")
+| search $perf_filter$
+| stats dc(pretty_name) as count</query>
+          <earliest>$time_range.earliest$</earliest>
+          <latest>$time_range.latest$</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="colorMode">block</option>
+        <option name="rangeColors">["0x0877a6"]</option>
+        <option name="underLabel">Dashboards Matching Filter</option>
+      </single>
+    </panel>
+    
+    <panel>
+      <title>Total Views (Filtered)</title>
+      <single>
+        <search>
+          <query>`get_all_dashboards_summary`
+| lookup dashboard_registry pretty_name OUTPUT owner description dashboard_uri
+| search pretty_name="$name_filter$" $app_filter$ $owner_filter$ $health_filter$
+| eval perf_category=case(
+    avg_load_time_7d == 0, "unknown",
+    avg_load_time_7d &lt; 1000, "fast",
+    avg_load_time_7d &lt; 3000, "good",
+    avg_load_time_7d &lt; 5000, "slow",
+    1=1, "very_slow")
+| search $perf_filter$
+| stats sum(views_7d) as total_views
+| eval total_views=round(total_views, 0)</query>
+          <earliest>$time_range.earliest$</earliest>
+          <latest>$time_range.latest$</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="colorMode">block</option>
+        <option name="rangeColors">["0x53a051"]</option>
+        <option name="underLabel">Total Views (7d)</option>
+      </single>
+    </panel>
+    
+    <panel>
+      <title>Health Issues</title>
+      <single>
+        <search>
+          <query>`get_all_dashboards_summary`
+| lookup dashboard_registry pretty_name OUTPUT owner description dashboard_uri
+| search pretty_name="$name_filter$" $app_filter$ $owner_filter$ $health_filter$
+| eval perf_category=case(
+    avg_load_time_7d == 0, "unknown",
+    avg_load_time_7d &lt; 1000, "fast",
+    avg_load_time_7d &lt; 3000, "good",
+    avg_load_time_7d &lt; 5000, "slow",
+    1=1, "very_slow")
+| search $perf_filter$
+| where health_status="critical" OR health_status="warning"
+| stats dc(pretty_name) as issues</query>
+          <earliest>$time_range.earliest$</earliest>
+          <latest>$time_range.latest$</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="colorMode">block</option>
+        <option name="rangeColors">["0x53a051","0xf8be34","0xdc4e41"]</option>
+        <option name="rangeValues">[1,5]</option>
+        <option name="underLabel">Critical/Warning</option>
+      </single>
+    </panel>
+    
+    <panel>
+      <title>Performance Issues</title>
+      <single>
+        <search>
+          <query>`get_all_dashboards_summary`
+| lookup dashboard_registry pretty_name OUTPUT owner description dashboard_uri
+| search pretty_name="$name_filter$" $app_filter$ $owner_filter$ $health_filter$
+| eval perf_category=case(
+    avg_load_time_7d == 0, "unknown",
+    avg_load_time_7d &lt; 1000, "fast",
+    avg_load_time_7d &lt; 3000, "good",
+    avg_load_time_7d &lt; 5000, "slow",
+    1=1, "very_slow")
+| search $perf_filter$
+| where avg_load_time_7d &gt; 5000
+| stats dc(pretty_name) as slow_count</query>
+          <earliest>$time_range.earliest$</earliest>
+          <latest>$time_range.latest$</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="colorMode">block</option>
+        <option name="rangeColors">["0x53a051","0xf8be34","0xdc4e41"]</option>
+        <option name="rangeValues">[1,5]</option>
+        <option name="underLabel">Very Slow (&gt;5s)</option>
+      </single>
+    </panel>
+  </row>
+  
+  <!-- Admin Instructions -->
+  <row>
+    <panel>
+      <html>
+        <div style="padding: 15px; background-color: #f5f5f5; border-radius: 5px; margin: 10px 0;">
+          <h3 style="margin-top: 0; color: #0877a6;">🛠️ Administrative Actions Guide</h3>
+          <p><strong>How to perform administrative tasks:</strong></p>
+          <ul>
+            <li><strong>Edit Dashboard:</strong> Click the dashboard name in the table below to open it, then use Splunk's built-in "Edit" button</li>
+            <li><strong>View/Edit Permissions:</strong> Use the "Permissions" link in the Actions column</li>
+            <li><strong>Change Ownership:</strong> Access via Settings → User Interface → Views, then find the dashboard</li>
+            <li><strong>Move Between Apps:</strong> Access via Settings → User Interface → Views, then use "Move" action</li>
+            <li><strong>Delete Dashboard:</strong> Access via Settings → User Interface → Views, then use "Delete" action</li>
+            <li><strong>Clone Dashboard:</strong> Open the dashboard, then use "Save As" to create a copy in any app</li>
+          </ul>
+          <p style="margin-bottom: 0;"><em>💡 Tip: Use the filters above to narrow down dashboards by app, owner, health status, performance, or name before taking action.</em></p>
+        </div>
+      </html>
+    </panel>
+  </row>
+  
+  <!-- Main Dashboard Table with Actions -->
+  <row>
+    <panel>
+      <title>Dashboard Management List</title>
+      <table>
+        <search>
+          <query>`get_all_dashboards_summary`
+| lookup dashboard_registry pretty_name OUTPUT owner description dashboard_uri
+| search pretty_name="$name_filter$" $app_filter$ $owner_filter$ $health_filter$
+| eval perf_category=case(
+    avg_load_time_7d == 0, "unknown",
+    avg_load_time_7d &lt; 1000, "fast",
+    avg_load_time_7d &lt; 3000, "good",
+    avg_load_time_7d &lt; 5000, "slow",
+    1=1, "very_slow")
+| search $perf_filter$
+| eval avg_load_time_7d=round(avg_load_time_7d, 0)
+| eval perf_rating=case(
+    avg_load_time_7d == 0, "-",
+    avg_load_time_7d &lt; 1000, "⚡ Fast",
+    avg_load_time_7d &lt; 3000, "✓ Good",
+    avg_load_time_7d &lt; 5000, "⚠ Slow",
+    1=1, "✗ Very Slow")
+| eval health_badge=case(
+    health_status=="healthy", "✓ Healthy",
+    health_status=="warning", "⚠ Warning",
+    health_status=="critical", "✗ Critical",
+    health_status=="stale", "☾ Stale",
+    1=1, health_status)
+| eval dashboard_link=dashboard_uri
+| eval title_from_uri=mvindex(split(dashboard_uri, "/"), -1)
+| table pretty_name app owner views_7d edits_7d errors_7d avg_load_time_7d perf_rating health_badge dashboard_link title_from_uri
+| rename pretty_name as "Dashboard Name", app as "App", owner as "Owner", views_7d as "Views (7d)", edits_7d as "Edits (7d)", errors_7d as "Errors (7d)", avg_load_time_7d as "Avg Load (ms)", perf_rating as "Performance", health_badge as "Health", dashboard_link as "Dashboard URI", title_from_uri as "Title"
+| sort - "Views (7d)"</query>
+          <earliest>$time_range.earliest$</earliest>
+          <latest>$time_range.latest$</latest>
+        </search>
+        <option name="drilldown">row</option>
+        <option name="count">50</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="rowNumbers">true</option>
+        <option name="wrap">true</option>
+        <format type="color" field="Health">
+          <colorPalette type="map">{"✓ Healthy":#53A051,"⚠ Warning":#F8BE34,"✗ Critical":#DC4E41,"☾ Stale":#708794}</colorPalette>
+        </format>
+        <format type="color" field="Performance">
+          <colorPalette type="map">{"⚡ Fast":#53A051,"✓ Good":#0877a6,"⚠ Slow":#F8BE34,"✗ Very Slow":#DC4E41,"-":#708794}</colorPalette>
+        </format>
+        <format type="number" field="Views (7d)">
+          <option name="precision">0</option>
+        </format>
+        <format type="number" field="Edits (7d)">
+          <option name="precision">0</option>
+        </format>
+        <format type="number" field="Errors (7d)">
+          <option name="precision">0</option>
+        </format>
+        <format type="number" field="Avg Load (ms)">
+          <option name="precision">0</option>
+        </format>
+        <drilldown>
+          <condition field="Dashboard Name">
+            <link target="_blank">$row.Dashboard URI$</link>
+          </condition>
+          <condition field="*">
+            <link target="_blank">/app/splunk-content-monitoring-console/dashboard_details?form.dashboard_name=$row.Dashboard Name$</link>
+          </condition>
+        </drilldown>
+      </table>
+    </panel>
+  </row>
+  
+  <!-- Quick Actions Panel -->
+  <row>
+    <panel>
+      <title>🔧 Quick Access to Administrative Functions</title>
+      <html>
+        <div style="padding: 20px;">
+          <div style="display: flex; flex-wrap: wrap; gap: 15px; justify-content: center;">
+            <a href="/en-US/manager/system/admin/views" target="_blank" class="btn btn-primary" style="min-width: 200px; text-align: center; padding: 12px 20px;">
+              📋 Manage All Dashboards
+            </a>
+            <a href="/en-US/manager/system/admin/views?action=new" target="_blank" class="btn btn-primary" style="min-width: 200px; text-align: center; padding: 12px 20px;">
+              ➕ Create New Dashboard
+            </a>
+            <a href="/en-US/manager/system/data/inputs/all" target="_blank" class="btn btn-secondary" style="min-width: 200px; text-align: center; padding: 12px 20px;">
+              ⚙️ Settings
+            </a>
+            <a href="/en-US/app/splunk-content-monitoring-console/search" target="_blank" class="btn btn-secondary" style="min-width: 200px; text-align: center; padding: 12px 20px;">
+              🔍 Search
+            </a>
+          </div>
+          
+          <hr style="margin: 25px 0;"/>
+          
+          <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; border-left: 4px solid #0877a6;">
+            <h4 style="margin-top: 0; color: #0877a6;">💡 Common Administrative Workflows</h4>
+            
+            <h5 style="color: #333; margin-top: 15px;">To Change Dashboard Ownership:</h5>
+            <ol>
+              <li>Click "Manage All Dashboards" above</li>
+              <li>Find the dashboard you want to modify</li>
+              <li>Click "Edit" → "Edit Permissions"</li>
+              <li>Change the "Owner" field to the new owner</li>
+              <li>Click "Save"</li>
+            </ol>
+            
+            <h5 style="color: #333; margin-top: 15px;">To Move Dashboard Between Apps:</h5>
+            <ol>
+              <li>Click "Manage All Dashboards" above</li>
+              <li>Find the dashboard you want to move</li>
+              <li>Click "Move" in the Actions column</li>
+              <li>Select the destination app</li>
+              <li>Click "Move"</li>
+            </ol>
+            
+            <h5 style="color: #333; margin-top: 15px;">To Delete Dashboards (Bulk):</h5>
+            <ol>
+              <li>Use the filters above to narrow down candidates (e.g., stale dashboards)</li>
+              <li>Review the filtered list carefully</li>
+              <li>Click "Manage All Dashboards" above</li>
+              <li>Use the search/filter in the management page to find each dashboard</li>
+              <li>Select dashboards and click "Delete" for each, or use checkboxes for bulk delete</li>
+            </ol>
+            
+            <h5 style="color: #333; margin-top: 15px;">To Change Permissions:</h5>
+            <ol>
+              <li>Click the dashboard name in the table above to open it</li>
+              <li>Click "Edit" → "Edit Permissions" in the dashboard</li>
+              <li>Modify read/write permissions for roles and users</li>
+              <li>Set whether it's shared in the app or globally</li>
+              <li>Click "Save"</li>
+            </ol>
+          </div>
+        </div>
+      </html>
+    </panel>
+  </row>
+  
+  <!-- Bulk Action Recommendations -->
+  <row>
+    <panel>
+      <title>🎯 Recommended Bulk Actions Based on Current Data</title>
+      <table>
+        <search>
+          <query>`get_all_dashboards_summary`
+| lookup dashboard_registry pretty_name OUTPUT owner description dashboard_uri
+| eval avg_load_time_7d=round(avg_load_time_7d, 0)
+| eval recommendation=case(
+    health_status=="critical" AND avg_load_time_7d &gt; 5000, "URGENT: Fix errors AND optimize performance",
+    health_status=="critical", "HIGH: Fix critical errors",
+    health_status=="stale" AND views_7d == 0, "CONSIDER: Archive or delete if not needed",
+    avg_load_time_7d &gt; 10000, "HIGH: Optimize performance (very slow)",
+    health_status=="warning", "MEDIUM: Review and fix warnings",
+    avg_load_time_7d &gt; 5000, "MEDIUM: Optimize performance",
+    1=1, "No action needed")
+| eval priority=case(
+    recommendation like "URGENT:%", 1,
+    recommendation like "HIGH:%", 2,
+    recommendation like "MEDIUM:%", 3,
+    recommendation like "CONSIDER:%", 4,
+    1=1, 5)
+| where priority &lt; 5
+| eval action_type=case(
+    health_status=="critical" OR health_status=="warning", "Fix/Debug",
+    health_status=="stale", "Archive/Delete",
+    avg_load_time_7d &gt; 5000, "Optimize",
+    1=1, "Review")
+| table pretty_name app owner views_7d errors_7d avg_load_time_7d health_status action_type recommendation
+| rename pretty_name as "Dashboard Name", app as "App", owner as "Owner", views_7d as "Views (7d)", errors_7d as "Errors (7d)", avg_load_time_7d as "Avg Load (ms)", health_status as "Health", action_type as "Action Type", recommendation as "Recommendation"
+| sort priority</query>
+          <earliest>$time_range.earliest$</earliest>
+          <latest>$time_range.latest$</latest>
+        </search>
+        <option name="drilldown">row</option>
+        <option name="count">20</option>
+        <format type="color" field="Action Type">
+          <colorPalette type="map">{"Fix/Debug":#DC4E41,"Optimize":#F8BE34,"Archive/Delete":#708794,"Review":#0877a6}</colorPalette>
+        </format>
+        <format type="number" field="Views (7d)">
+          <option name="precision">0</option>
+        </format>
+        <format type="number" field="Errors (7d)">
+          <option name="precision">0</option>
+        </format>
+        <format type="number" field="Avg Load (ms)">
+          <option name="precision">0</option>
+        </format>
+        <drilldown>
+          <link target="_blank">/app/splunk-content-monitoring-console/dashboard_details?form.dashboard_name=$row.Dashboard Name$</link>
+        </drilldown>
+      </table>
+    </panel>
+  </row>
+  
+  <!-- Back Navigation -->
+  <row>
+    <panel>
+      <html>
+        <div style="text-align: center; padding: 20px;">
+          <a href="/app/splunk-content-monitoring-console/dashboard_leaderboard" class="btn btn-primary" style="margin: 5px;">← Back to Dashboard Leaderboard</a>
+          <a href="/app/splunk-content-monitoring-console/poop_deck" class="btn btn-secondary" style="margin: 5px;">View Poop Deck Analysis</a>
+        </div>
+      </html>
+    </panel>
+  </row>
+</form>
