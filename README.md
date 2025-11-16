@@ -26,6 +26,7 @@ While the Splunk Monitoring Console (DMC) focuses on system-level health and per
 - **Usage Tracking**: Track how many times each dashboard is viewed, by which users, and when
 - **Edit History**: Monitor when dashboards are created or modified, and by whom
 - **Health Monitoring**: Detect and track dashboard errors and warnings from internal logs
+- **Performance Monitoring**: Track dashboard load times and identify slow-performing dashboards
 - **Stale Dashboard Detection**: Identify dashboards that haven't been accessed in 30+ days
 
 #### Metrics & Analytics
@@ -56,13 +57,14 @@ While the Splunk Monitoring Console (DMC) focuses on system-level health and per
 
 The app uses a three-stage pipeline for efficiency:
 
-1. **Collect**: Scheduled searches analyze Splunk's internal logs (`_internal`, `_audit`) to track views, edits, and errors
+1. **Collect**: Scheduled searches analyze Splunk's internal logs (`_internal`, `_audit`) to track views, edits, errors, and performance
 2. **Store**: Metrics are written to a dedicated metrics index using `mcollect` for optimal performance
 3. **Query**: Fast retrieval via `mstats` command and reusable search macros
 
 **Note on Scheduled Searches**: CACA is powered by lightweight scheduled searches that run at the following intervals:
 - Dashboard views: Every 5 minutes
-- Dashboard edits: Every 10 minutes  
+- Dashboard edits: Every 10 minutes
+- Dashboard performance: Every 10 minutes
 - Dashboard health: Every 15 minutes
 - Registry updates: Daily at 2 AM
 
@@ -140,6 +142,7 @@ Navigate to **Settings → Searches, reports, and alerts** and enable these sear
 
 - **Dashboard Views - Metrics Collector** (runs every 5 minutes)
 - **Dashboard Edits - Metrics Collector** (runs every 10 minutes)
+- **Dashboard Performance - Metrics Collector** (runs every 10 minutes)
 - **Dashboard Health - Metrics Collector** (runs every 15 minutes)
 - **Dashboard Registry - Auto Update** (runs daily at 2 AM)
 
@@ -161,20 +164,21 @@ Allow 15-30 minutes for the initial data collection to populate the metrics inde
 
 Navigate to **CACA → Dashboard Leaderboard** to view:
 
-- **High-Level KPIs**: Total dashboards, views, errors, and stale dashboards
-- **Activity Leaderboard Table**: Sortable list of all dashboards with metrics
-- **Trending Charts**: Views and errors over time
-- **Top Dashboards**: Most viewed and most edited dashboards
+- **High-Level KPIs**: Total dashboards, views, errors, average load time, and stale dashboards
+- **Activity Leaderboard Table**: Sortable list of all dashboards with usage, health, and performance metrics
+- **Trending Charts**: Views, errors, and load time trends over time
+- **Top Dashboards**: Most viewed, most edited, and slowest dashboards
 
 ### Dashboard Details
 
 Click any dashboard in the leaderboard to view detailed metrics:
 
-- Total views, edits, and errors
-- Activity trends over time
+- Total views, edits, errors, and average load time
+- Activity and performance trends over time
 - Top users by views
 - Edit history
 - Error details with severity
+- Load time analysis (average and maximum)
 
 ### Adding Badges to Your Dashboards
 
@@ -223,6 +227,16 @@ CACA provides several search macros for easy querying:
 `get_top_dashboards(views)`
 ```
 
+#### Get dashboard performance:
+```spl
+`get_dashboard_performance("My Dashboard Name")`
+```
+
+#### Get slow dashboards:
+```spl
+`get_slow_dashboards`
+```
+
 #### Get last viewed time:
 ```spl
 `get_dashboard_last_viewed("My Dashboard Name")`
@@ -236,6 +250,7 @@ Edit `default/savedsearches.conf` or use Splunk Web to modify:
 
 - **View tracking frequency**: Default every 5 minutes
 - **Edit tracking frequency**: Default every 10 minutes
+- **Performance tracking frequency**: Default every 10 minutes
 - **Health tracking frequency**: Default every 15 minutes
 - **Registry update frequency**: Default daily at 2 AM
 

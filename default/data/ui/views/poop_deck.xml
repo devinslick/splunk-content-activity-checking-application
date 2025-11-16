@@ -83,6 +83,26 @@
     </panel>
     
     <panel>
+      <title>🐌 Slow Dashboards</title>
+      <single>
+        <search>
+          <query>| mstats avg(avg_load_time) as avg_load WHERE index=caca_metrics AND metric_name="dashboard.load_time" BY pretty_name span=1d 
+| where _time >= relative_time(now(), "-7d")
+| stats avg(avg_load) as avg_load_time by pretty_name
+| where avg_load_time > 5000
+| stats count as slow_count</query>
+          <earliest>-7d@d</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="colorMode">block</option>
+        <option name="rangeColors">["0x53a051","0xf8be34","0xdc4e41"]</option>
+        <option name="rangeValues">[1,5]</option>
+        <option name="underLabel">Performance Issues</option>
+      </single>
+    </panel>
+    
+    <panel>
       <title>👻 Ghost Dashboards</title>
       <single>
         <search>
@@ -247,6 +267,69 @@
           <option name="precision">0</option>
         </format>
         <format type="number" field="Warnings">
+          <option name="precision">0</option>
+        </format>
+        <format type="number" field="Views (7d)">
+          <option name="precision">0</option>
+        </format>
+        <drilldown>
+          <link target="_blank">/app/splunk-content-monitoring-console/dashboard_details?form.dashboard_name=$row.Dashboard$</link>
+        </drilldown>
+      </table>
+    </panel>
+  </row>
+  
+  <!-- The Slow: Performance Issues -->
+  <row>
+    <panel>
+      <title>🐌 The Slow - Dashboards with Performance Issues (Last 7 Days)</title>
+      <table>
+        <search>
+          <query>| mstats avg(avg_load_time) as avg_load, max(max_load_time) as max_load WHERE index=caca_metrics AND metric_name="dashboard.load_time" BY pretty_name, app span=1d 
+| where _time >= relative_time(now(), "-7d")
+| stats avg(avg_load) as avg_load_time, max(max_load) as max_load_time by pretty_name, app
+| where avg_load_time > 3000
+| eval avg_load_time=round(avg_load_time, 0)
+| eval max_load_time=round(max_load_time, 0)
+| lookup dashboard_registry pretty_name OUTPUT owner description
+| join type=left pretty_name 
+    [| mstats sum(_value) as views WHERE index=caca_metrics AND metric_name="dashboard.views" BY pretty_name span=1d
+    | where _time >= relative_time(now(), "-7d")
+    | stats sum(views) as views_7d by pretty_name]
+| fillnull value=0 views_7d
+| eval performance_level=case(
+    avg_load_time > 10000, "🔥 Critical",
+    avg_load_time > 7000, "❌ Very Slow",
+    avg_load_time > 5000, "⚠️ Slow",
+    1=1, "😐 Sluggish")
+| eval user_impact=case(
+    views_7d > 100 AND avg_load_time > 5000, "HIGH - Poor user experience",
+    views_7d > 10 AND avg_load_time > 5000, "MEDIUM - Affecting users",
+    avg_load_time > 10000, "HIGH - Unacceptably slow",
+    1=1, "LOW - Limited impact")
+| eval recommendation=case(
+    avg_load_time > 10000, "URGENT: Optimize or disable",
+    avg_load_time > 7000, "High priority optimization",
+    avg_load_time > 5000, "Should optimize",
+    1=1, "Consider optimization")
+| table pretty_name app avg_load_time max_load_time views_7d performance_level user_impact recommendation owner description
+| rename pretty_name as "Dashboard", app as "App", avg_load_time as "Avg Load (ms)", max_load_time as "Max Load (ms)", views_7d as "Views (7d)", performance_level as "Performance", user_impact as "Impact", recommendation as "Recommendation", owner as "Owner", description as "Description"
+| sort -"Avg Load (ms)"</query>
+          <earliest>-7d@d</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">row</option>
+        <option name="count">30</option>
+        <format type="color" field="Performance">
+          <colorPalette type="map">{"🔥 Critical":#DC4E41,"❌ Very Slow":#F1813F,"⚠️ Slow":#F8BE34,"😐 Sluggish":#0877a6}</colorPalette>
+        </format>
+        <format type="number" field="Avg Load (ms)">
+          <option name="precision">0</option>
+        </format>
+        <format type="number" field="Max Load (ms)">
+          <option name="precision">0</option>
+        </format>
+        <format type="number" field="Views (7d)">
           <option name="precision">0</option>
         </format>
         <format type="number" field="Views (7d)">
