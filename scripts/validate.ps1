@@ -349,7 +349,7 @@ if (-not $Quick) {
 
         try {
             # Create temporary package directory
-            $packageDir = Join-Path $env:TEMP "caca-package-$(Get-Date -Format 'yyyyMMddHHmmss')"
+            $packageDir = Join-Path $env:TEMP "caca-content-activity-checking-application-$(Get-Date -Format 'yyyyMMddHHmmss')"
             New-Item -ItemType Directory -Path $packageDir -Force | Out-Null
 
             # Copy files (exclude dev files)
