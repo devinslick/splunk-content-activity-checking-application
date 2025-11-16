@@ -67,6 +67,24 @@
     </panel>
     
     <panel>
+      <title>Avg Load Time (7d)</title>
+      <single>
+        <search>
+          <query>| mstats avg(avg_load_time) as overall_avg WHERE index=caca_metrics AND metric_name="dashboard.load_time" span=1d 
+| stats avg(overall_avg) as avg_load_time 
+| eval avg_load_time=round(avg_load_time, 0)." ms"</query>
+          <earliest>-7d@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="colorMode">block</option>
+        <option name="rangeColors">["0x53a051","0x0877a6","0xf8be34","0xf1813f","0xdc4e41"]</option>
+        <option name="rangeValues">[1000,3000,5000,10000]</option>
+        <option name="underLabel">Performance</option>
+      </single>
+    </panel>
+    
+    <panel>
       <title>Stale Dashboards</title>
       <single>
         <search>
@@ -94,14 +112,21 @@
         <search>
           <query>`get_all_dashboards_summary`
 | lookup dashboard_registry pretty_name OUTPUT owner description 
+| eval avg_load_time_7d=round(avg_load_time_7d, 0)
+| eval perf_rating=case(
+    avg_load_time_7d == 0, "-",
+    avg_load_time_7d &lt; 1000, "⚡ Fast",
+    avg_load_time_7d &lt; 3000, "✓ Good",
+    avg_load_time_7d &lt; 5000, "⚠ Slow",
+    1=1, "✗ Very Slow")
 | eval health_badge=case(
     health_status=="healthy", "✓ Healthy",
     health_status=="warning", "⚠ Warning",
     health_status=="critical", "✗ Critical",
     health_status=="stale", "☾ Stale",
     1=1, health_status)
-| table pretty_name app views_7d edits_7d errors_7d health_badge owner description
-| rename pretty_name as "Dashboard Name", app as "App", views_7d as "Views (7d)", edits_7d as "Edits (7d)", errors_7d as "Errors (7d)", health_badge as "Health Status", owner as "Owner", description as "Description"
+| table pretty_name app views_7d edits_7d errors_7d avg_load_time_7d perf_rating health_badge owner description
+| rename pretty_name as "Dashboard Name", app as "App", views_7d as "Views (7d)", edits_7d as "Edits (7d)", errors_7d as "Errors (7d)", avg_load_time_7d as "Avg Load (ms)", perf_rating as "Performance", health_badge as "Health Status", owner as "Owner", description as "Description"
 | sort - "Views (7d)"</query>
           <earliest>$time_range.earliest$</earliest>
           <latest>$time_range.latest$</latest>
@@ -114,6 +139,9 @@
         <format type="color" field="Health Status">
           <colorPalette type="map">{"✓ Healthy":#53A051,"⚠ Warning":#F8BE34,"✗ Critical":#DC4E41,"☾ Stale":#708794}</colorPalette>
         </format>
+        <format type="color" field="Performance">
+          <colorPalette type="map">{"⚡ Fast":#53A051,"✓ Good":#0877a6,"⚠ Slow":#F8BE34,"✗ Very Slow":#DC4E41,"-":#708794}</colorPalette>
+        </format>
         <format type="number" field="Views (7d)">
           <option name="precision">0</option>
         </format>
@@ -121,6 +149,9 @@
           <option name="precision">0</option>
         </format>
         <format type="number" field="Errors (7d)">
+          <option name="precision">0</option>
+        </format>
+        <format type="number" field="Avg Load (ms)">
           <option name="precision">0</option>
         </format>
         <drilldown>
@@ -165,6 +196,51 @@
         <option name="charting.seriesColors">[0xDC4E41]</option>
         <option name="charting.drilldown">none</option>
       </chart>
+    </panel>
+  </row>
+  
+  <!-- Performance Trending -->
+  <row>
+    <panel>
+      <title>Average Load Time Trend (Last 7 Days)</title>
+      <chart>
+        <search>
+          <query>| mstats avg(avg_load_time) as avg_load WHERE index=caca_metrics AND metric_name="dashboard.load_time" span=1d 
+| timechart avg(avg_load) as "Avg Load Time (ms)" span=1d</query>
+          <earliest>-7d@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="charting.chart">line</option>
+        <option name="charting.axisTitleX.text">Time</option>
+        <option name="charting.axisTitleY.text">Load Time (ms)</option>
+        <option name="charting.legend.placement">bottom</option>
+        <option name="charting.seriesColors">[0xF8BE34]</option>
+        <option name="charting.drilldown">none</option>
+      </chart>
+    </panel>
+    
+    <panel>
+      <title>Slowest Dashboards (7d Avg)</title>
+      <table>
+        <search>
+          <query>`get_slow_dashboards`
+| head 10
+| rename pretty_name as "Dashboard", app as "App", avg_load_time_7d as "Avg Load (ms)", performance_status as "Status"</query>
+          <earliest>-7d@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">row</option>
+        <option name="count">10</option>
+        <format type="color" field="Status">
+          <colorPalette type="map">{"Critical":#DC4E41,"Poor":#F1813F,"Fair":#F8BE34,"Good":#53A051}</colorPalette>
+        </format>
+        <format type="number" field="Avg Load (ms)">
+          <option name="precision">0</option>
+        </format>
+        <drilldown>
+          <link target="_blank">/app/splunk-content-monitoring-console/dashboard_details?form.dashboard_name=$row.Dashboard$</link>
+        </drilldown>
+      </table>
     </panel>
   </row>
   

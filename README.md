@@ -26,6 +26,7 @@ While the Splunk Monitoring Console (DMC) focuses on system-level health and per
 - **Usage Tracking**: Track how many times each dashboard is viewed, by which users, and when
 - **Edit History**: Monitor when dashboards are created or modified, and by whom
 - **Health Monitoring**: Detect and track dashboard errors and warnings from internal logs
+- **Performance Monitoring**: Track dashboard load times and identify slow-performing dashboards
 - **Stale Dashboard Detection**: Identify dashboards that haven't been accessed in 30+ days
 
 #### Metrics & Analytics
@@ -56,13 +57,14 @@ While the Splunk Monitoring Console (DMC) focuses on system-level health and per
 
 The app uses a three-stage pipeline for efficiency:
 
-1. **Collect**: Scheduled searches analyze Splunk's internal logs (`_internal`, `_audit`) to track views, edits, and errors
+1. **Collect**: Scheduled searches analyze Splunk's internal logs (`_internal`, `_audit`) to track views, edits, errors, and performance
 2. **Store**: Metrics are written to a dedicated metrics index using `mcollect` for optimal performance
 3. **Query**: Fast retrieval via `mstats` command and reusable search macros
 
 **Note on Scheduled Searches**: CACA is powered by lightweight scheduled searches that run at the following intervals:
 - Dashboard views: Every 5 minutes
-- Dashboard edits: Every 10 minutes  
+- Dashboard edits: Every 10 minutes
+- Dashboard performance: Every 10 minutes
 - Dashboard health: Every 15 minutes
 - Registry updates: Daily at 2 AM
 
@@ -140,6 +142,7 @@ Navigate to **Settings → Searches, reports, and alerts** and enable these sear
 
 - **Dashboard Views - Metrics Collector** (runs every 5 minutes)
 - **Dashboard Edits - Metrics Collector** (runs every 10 minutes)
+- **Dashboard Performance - Metrics Collector** (runs every 10 minutes)
 - **Dashboard Health - Metrics Collector** (runs every 15 minutes)
 - **Dashboard Registry - Auto Update** (runs daily at 2 AM)
 
@@ -161,20 +164,21 @@ Allow 15-30 minutes for the initial data collection to populate the metrics inde
 
 Navigate to **CACA → Dashboard Leaderboard** to view:
 
-- **High-Level KPIs**: Total dashboards, views, errors, and stale dashboards
-- **Activity Leaderboard Table**: Sortable list of all dashboards with metrics
-- **Trending Charts**: Views and errors over time
-- **Top Dashboards**: Most viewed and most edited dashboards
+- **High-Level KPIs**: Total dashboards, views, errors, average load time, and stale dashboards
+- **Activity Leaderboard Table**: Sortable list of all dashboards with usage, health, and performance metrics
+- **Trending Charts**: Views, errors, and load time trends over time
+- **Top Dashboards**: Most viewed, most edited, and slowest dashboards
 
 ### Dashboard Details
 
 Click any dashboard in the leaderboard to view detailed metrics:
 
-- Total views, edits, and errors
-- Activity trends over time
+- Total views, edits, errors, and average load time
+- Activity and performance trends over time
 - Top users by views
 - Edit history
 - Error details with severity
+- Load time analysis (average and maximum)
 
 ### Adding Badges to Your Dashboards
 
@@ -206,26 +210,128 @@ Replace `YOUR_DASHBOARD_NAME` with your dashboard's pretty name from the registr
 
 ### Using Search Macros
 
-CACA provides several search macros for easy querying:
+CACA provides several search macros for easy querying. These macros help you quickly identify dashboards with issues, analyze performance, and understand usage patterns.
 
-#### Get dashboard stats:
+**Note:** All macros respect the app filter configuration (see "Filtering Apps for Monitoring" in Configuration section). All results include the `app` field showing which app each dashboard belongs to, making it easy to filter or group results by application.
+
+#### Finding Dashboards with Issues
+
+##### Identify dashboards with health issues (errors/warnings):
+```spl
+`get_dashboards_with_errors`
+```
+**Returns:** Dashboards with errors or warnings in the last 7 days, sorted by severity
+**Columns:** pretty_name, app, errors, warnings, total_issues, health_status
+**Use case:** Find dashboards that are generating errors and need attention
+
+##### Identify slow-performing dashboards:
+```spl
+`get_slow_dashboards`
+```
+**Returns:** Dashboards with average load time > 3 seconds in the last 7 days
+**Columns:** pretty_name, app, avg_load_time_7d, performance_status
+**Use case:** Find dashboards that need performance optimization
+
+##### Identify all problematic dashboards (health OR performance issues):
+```spl
+`get_problematic_dashboards`
+```
+**Returns:** Dashboards with critical/warning health status OR slow performance
+**Columns:** pretty_name, app, views_7d, errors_7d, avg_load_time_7d, health_status, issue_type
+**Use case:** Get a comprehensive list of all dashboards needing attention
+
+**Example - Filter for critical issues only:**
+```spl
+`get_problematic_dashboards`
+| where health_status="critical" OR avg_load_time_7d > 10000
+```
+
+#### Dashboard Analytics
+
+##### Get comprehensive stats for a specific dashboard:
 ```spl
 `get_dashboard_stats("My Dashboard Name")`
 ```
+**Returns:** All metrics (views, edits, errors, load time) for the specified dashboard
+**Use case:** Deep dive into a specific dashboard's activity
 
-#### Get all dashboards summary:
+##### Get all dashboards summary:
 ```spl
 `get_all_dashboards_summary`
 ```
+**Returns:** Summary of all dashboards with 7-day metrics
+**Columns:** pretty_name, app, views_7d, edits_7d, errors_7d, avg_load_time_7d, health_status
+**Use case:** Get an overview of all dashboard health and activity
 
-#### Get top dashboards by views:
+##### Get top dashboards by metric type:
 ```spl
 `get_top_dashboards(views)`
+`get_top_dashboards(edits)`
 ```
+**Returns:** Top 10 dashboards by views or edits in the last 7 days
+**Use case:** Identify most-used or most-edited dashboards
 
-#### Get last viewed time:
+#### Performance Analysis
+
+##### Get performance rating for a specific dashboard:
+```spl
+`get_dashboard_performance("My Dashboard Name")`
+```
+**Returns:** Average load time and performance rating (Excellent/Good/Fair/Poor)
+**Use case:** Check if a dashboard meets performance standards
+
+##### Get last viewed time for a dashboard:
 ```spl
 `get_dashboard_last_viewed("My Dashboard Name")`
+```
+**Returns:** Last viewed timestamp and days since last view
+**Use case:** Identify stale or unused dashboards
+
+#### Common Use Cases
+
+**Find all dashboards needing immediate attention:**
+```spl
+`get_problematic_dashboards`
+| where health_status="critical" OR (errors_7d > 50) OR (avg_load_time_7d > 10000)
+```
+
+**Filter results by specific app:**
+```spl
+`get_dashboards_with_errors`
+| where app="search"
+| table pretty_name app errors warnings health_status
+```
+
+**List dashboards with errors across multiple apps:**
+```spl
+`get_dashboards_with_errors`
+| where app IN ("my_app1", "my_app2", "production_app")
+| sort -errors
+```
+
+**List dashboards with errors that are actively used:**
+```spl
+`get_dashboards_with_errors`
+| where errors > 0 
+| join type=inner pretty_name [| mstats sum(_value) as views WHERE index=caca_metrics AND metric_name="dashboard.views" BY pretty_name span=1d | where _time >= relative_time(now(), "-7d") | stats sum(views) as views_7d by pretty_name | where views_7d > 10]
+| table pretty_name app errors warnings views_7d health_status
+```
+
+**Find slow dashboards with high usage:**
+```spl
+`get_slow_dashboards`
+| join type=inner pretty_name [| mstats sum(_value) as views WHERE index=caca_metrics AND metric_name="dashboard.views" BY pretty_name span=1d | where _time >= relative_time(now(), "-7d") | stats sum(views) as views_7d by pretty_name]
+| where views_7d > 50
+| table pretty_name app avg_load_time_7d performance_status views_7d
+| sort -views_7d
+```
+
+**Dashboard health report for a specific app:**
+```spl
+`get_all_dashboards_summary`
+| where app="search" 
+| table pretty_name views_7d edits_7d errors_7d avg_load_time_7d health_status
+| sort -errors_7d
 ```
 
 ## Configuration
@@ -236,6 +342,7 @@ Edit `default/savedsearches.conf` or use Splunk Web to modify:
 
 - **View tracking frequency**: Default every 5 minutes
 - **Edit tracking frequency**: Default every 10 minutes
+- **Performance tracking frequency**: Default every 10 minutes
 - **Health tracking frequency**: Default every 15 minutes
 - **Registry update frequency**: Default daily at 2 AM
 
@@ -248,9 +355,70 @@ Edit `default/indexes.conf` to adjust retention:
 frozenTimePeriodInSecs = 31536000  # 1 year (default)
 ```
 
-### Excluding Dashboards from Monitoring
+### Filtering Apps for Monitoring
 
-Edit `lookups/dashboard_registry.csv` and set `status=inactive` for dashboards you want to exclude from collection.
+CACA can be configured to only monitor dashboards from specific apps, or exclude certain apps from monitoring. This is useful when you only want to track dashboards in production apps, or exclude system/admin apps.
+
+#### Configuration Method
+
+Edit `lookups/app_filter.csv` to control which apps are monitored:
+
+**Include specific apps only:**
+```csv
+app,include
+search,true
+my_production_app,true
+another_app,true
+```
+
+**Exclude specific apps:**
+```csv
+app,include
+splunk_monitoring_console,false
+learned,false
+introspection_generator_addon,false
+```
+
+**How it works:**
+- If an app is **not listed** in app_filter.csv, it **will be monitored** (default behavior)
+- If an app is listed with `include=true` (or `1` or `yes`), it **will be monitored**
+- If an app is listed with `include=false` (or `0` or `no`), it **will NOT be monitored**
+- The filter applies to:
+  - Dashboard registry updates (which dashboards are discovered)
+  - All metrics collection (views, edits, errors, performance)
+  - All search macros and dashboard queries
+
+#### Examples
+
+**Monitor only specific production apps:**
+```csv
+app,include
+production_app1,true
+production_app2,true
+production_app3,true
+```
+Then add a wildcard exclusion entry to exclude everything else (optional):
+```csv
+app,include
+production_app1,true
+production_app2,true
+*,false
+```
+
+**Exclude system and admin apps:**
+```csv
+app,include
+splunk_monitoring_console,false
+learned,false
+introspection_generator_addon,false
+splunk_instrumentation,false
+```
+
+**Note:** After updating `app_filter.csv`, run the "Dashboard Registry - Auto Update" search to rebuild the dashboard registry with the new filter applied.
+
+### Excluding Individual Dashboards from Monitoring
+
+Edit `lookups/dashboard_registry.csv` and set `status=inactive` for specific dashboards you want to exclude from collection (this is independent of app filtering).
 
 ## Troubleshooting
 
