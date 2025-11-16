@@ -119,7 +119,10 @@ The `caca_metrics` index should be created automatically. Verify by running:
 
 ### 2. Populate Dashboard Registry
 
-Run the registry update search to populate the dashboard registry:
+Run the registry update search to populate the dashboard registry. **Important:** Make sure to run this search from within the CACA app context, or use the full app path in the outputlookup command:
+
+**Option A - Run from CACA app context:**
+Navigate to **CACA app** in Splunk Web, then run:
 
 ```spl
 | rest /services/data/ui/views splunk_server=local count=0 search="sharing=*"
@@ -135,14 +138,41 @@ Run the registry update search to populate the dashboard registry:
 | outputlookup dashboard_registry.csv
 ```
 
+**Option B - Run from any app:**
+
+If you prefer to run the search from a different app (like Search & Reporting), you can do so, but you **must** include the full app path in the outputlookup command:
+
+```spl
+| rest /services/data/ui/views splunk_server=local count=0 search="sharing=*"
+| search isDashboard=1 OR isVisible=1
+| eval dashboard_uri="/app/".eai:acl.app."/".title
+| eval pretty_name=coalesce(label, title)
+| eval app=eai:acl.app
+| eval owner=eai:acl.owner
+| eval sharing=eai:acl.sharing
+| eval description=coalesce(eai:data, "")
+| eval status="active"
+| table dashboard_uri pretty_name app owner sharing description status
+| outputlookup caca:dashboard_registry.csv
+```
+
+**Note:** The `caca:` prefix ensures the lookup is saved to the correct app even when running from elsewhere.
+
+**Recommended:** Just use Option A - it's simpler and less error-prone.
+
 This will scan your Splunk environment and populate the `dashboard_registry.csv` lookup with all discovered dashboards, including private dashboards.
 
 **Note on Private Dashboards:** The `search="sharing=*"` parameter ensures that dashboards with all sharing levels (global, app, and user/private) are included in the registry. To see private dashboards owned by other users, the scheduled search must run with appropriate permissions (typically as admin or with the `list_storage_passwords` capability).
 
-**Verify the registry:**
+**Verify the registry (run from CACA app):**
 
 ```spl
 | inputlookup dashboard_registry | stats count
+```
+
+Or from any app, navigate to the lookup location:
+```spl
+Settings → Lookups → Lookup table files → Find "dashboard_registry.csv" in caca
 ```
 
 ### 3. Enable Scheduled Searches
@@ -462,7 +492,11 @@ Edit `lookups/dashboard_registry.csv` and set `status=inactive` for specific das
 
 ### Dashboard Not Appearing in Registry
 
-Run the registry update search manually:
+Run the registry update search manually from the CACA app context:
+
+**Step 1:** Navigate to the CACA app in Splunk Web
+
+**Step 2:** Run this search:
 ```spl
 | rest /services/data/ui/views splunk_server=local count=0 search="sharing=*"
 | search isDashboard=1 OR isVisible=1
@@ -473,12 +507,12 @@ Run the registry update search manually:
 | eval sharing=eai:acl.sharing
 | eval status="active"
 | table dashboard_uri pretty_name app owner sharing status
-| outputlookup dashboard_registry.csv
+| outputlookup caca:dashboard_registry.csv
 ```
 
 **For Private Dashboards:** If private dashboards still don't appear, ensure the search is running with appropriate permissions. Private dashboards owned by other users require admin privileges or specific capabilities to be discovered via REST API.
 
-Or add it manually to `lookups/dashboard_registry.csv`.
+Or add it manually to `lookups/dashboard_registry.csv` in the CACA app directory.
 
 ### Metrics Showing Zero
 

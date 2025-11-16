@@ -213,7 +213,7 @@ jobs:
       run: |
         echo "Running Splunk AppInspect..."
         # Create a temporary package directory
-        PACKAGE_DIR="caca-content-activity-checking-application"
+        PACKAGE_DIR="caca"
         mkdir -p "$PACKAGE_DIR"
 
         # Copy app files excluding development files

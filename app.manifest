@@ -4,7 +4,7 @@
     "title": "CACA - Content Activity Checking Application",
     "id": {
       "group": null,
-      "name": "caca-content-activity-checking-application",
+      "name": "caca",
       "version": "0.0.1"
     },
     "author": [
