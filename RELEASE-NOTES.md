@@ -1,8 +1,8 @@
 # Release Notes - CACA v0.0.1
 
-**Release Date:** November 15, 2025  
-**App Name:** CACA - Content Activity Checking Application  
-**Version:** 0.0.1 (Initial Beta Release)  
+**Release Date:** November 15, 2025
+**App Name:** CACA - Content Activity Checking Application
+**Version:** 0.0.1 (Initial Beta Release)
 **License:** MIT
 
 ---
@@ -78,15 +78,15 @@ After installation:
 
 2. **Populate Dashboard Registry**
    ```spl
-   | rest /services/data/ui/views splunk_server=local count=0 
-   | search isDashboard=1 OR isVisible=1 
-   | eval dashboard_uri="/app/".eai:acl.app."/".title 
-   | eval pretty_name=coalesce(label, title) 
-   | eval app=eai:acl.app 
-   | eval owner=eai:acl.owner 
-   | eval description=coalesce(eai:data, "") 
-   | eval status="active" 
-   | table dashboard_uri pretty_name app owner description status 
+   | rest /services/data/ui/views splunk_server=local count=0
+   | search isDashboard=1 OR isVisible=1
+   | eval dashboard_uri="/app/".eai:acl.app."/".title
+   | eval pretty_name=coalesce(label, title)
+   | eval app=eai:acl.app
+   | eval owner=eai:acl.owner
+   | eval description=coalesce(eai:data, "")
+   | eval status="active"
+   | table dashboard_uri pretty_name app owner description status
    | outputlookup dashboard_registry.csv
    ```
 

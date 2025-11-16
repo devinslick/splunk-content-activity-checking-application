@@ -1,7 +1,7 @@
 <form version="1.1">
   <label>CACA - Dashboard Details</label>
   <description>Detailed metrics for a specific dashboard</description>
-  
+
   <fieldset submitButton="true">
     <input type="text" token="dashboard_name">
       <label>Dashboard Name</label>
@@ -15,15 +15,15 @@
       </default>
     </input>
   </fieldset>
-  
+
   <!-- Dashboard Info Header -->
   <row>
     <panel>
       <title>Dashboard Information</title>
       <table>
         <search>
-          <query>| inputlookup dashboard_registry 
-| search pretty_name="$dashboard_name$" 
+          <query>| inputlookup dashboard_registry
+| search pretty_name="$dashboard_name$"
 | table pretty_name app owner description status
 | rename pretty_name as "Dashboard Name", app as "App", owner as "Owner", description as "Description", status as "Status"</query>
         </search>
@@ -32,14 +32,14 @@
       </table>
     </panel>
   </row>
-  
+
   <!-- Key Metrics -->
   <row>
     <panel>
       <title>Total Views (Last 7 Days)</title>
       <single>
         <search>
-          <query>| mstats sum(_value) as total WHERE index=caca_metrics AND pretty_name="$dashboard_name$" AND metric_name="dashboard.views" span=1d 
+          <query>| mstats sum(_value) as total WHERE index=caca_metrics AND pretty_name="$dashboard_name$" AND metric_name="dashboard.views" span=1d
 | where _time >= relative_time(now(), "-7d")
 | stats sum(total) as total_views</query>
           <earliest>$time_range.earliest$</earliest>
@@ -50,12 +50,12 @@
         <option name="underLabel">Views (7d)</option>
       </single>
     </panel>
-    
+
     <panel>
       <title>Total Edits (Last 30 Days)</title>
       <single>
         <search>
-          <query>| mstats sum(_value) as total WHERE index=caca_metrics AND pretty_name="$dashboard_name$" AND metric_name="dashboard.edits" span=1d 
+          <query>| mstats sum(_value) as total WHERE index=caca_metrics AND pretty_name="$dashboard_name$" AND metric_name="dashboard.edits" span=1d
 | where _time >= relative_time(now(), "-30d")
 | stats sum(total) as total_edits</query>
           <earliest>$time_range.earliest$</earliest>
@@ -66,12 +66,12 @@
         <option name="underLabel">Edits (30d)</option>
       </single>
     </panel>
-    
+
     <panel>
       <title>Total Errors</title>
       <single>
         <search>
-          <query>| mstats sum(_value) as total WHERE index=caca_metrics AND pretty_name="$dashboard_name$" AND metric_name="dashboard.errors" span=1d 
+          <query>| mstats sum(_value) as total WHERE index=caca_metrics AND pretty_name="$dashboard_name$" AND metric_name="dashboard.errors" span=1d
 | stats sum(total) as total_errors</query>
           <earliest>$time_range.earliest$</earliest>
           <latest>$time_range.latest$</latest>
@@ -84,13 +84,13 @@
         <option name="underLabel">Errors</option>
       </single>
     </panel>
-    
+
     <panel>
       <title>Avg Load Time</title>
       <single>
         <search>
-          <query>| mstats avg(avg_load_time) as avg_load WHERE index=caca_metrics AND pretty_name="$dashboard_name$" AND metric_name="dashboard.load_time" span=1d 
-| stats avg(avg_load) as avg_load_time 
+          <query>| mstats avg(avg_load_time) as avg_load WHERE index=caca_metrics AND pretty_name="$dashboard_name$" AND metric_name="dashboard.load_time" span=1d
+| stats avg(avg_load) as avg_load_time
 | eval display=round(avg_load_time, 0)." ms"
 | table display</query>
           <earliest>$time_range.earliest$</earliest>
@@ -103,7 +103,7 @@
         <option name="underLabel">Performance</option>
       </single>
     </panel>
-    
+
     <panel>
       <title>Last Viewed</title>
       <single>
@@ -119,14 +119,14 @@
       </single>
     </panel>
   </row>
-  
+
   <!-- Activity Trends -->
   <row>
     <panel>
       <title>View Trend Over Time</title>
       <chart>
         <search>
-          <query>| mstats sum(_value) as views WHERE index=caca_metrics AND pretty_name="$dashboard_name$" AND metric_name="dashboard.views" span=1d 
+          <query>| mstats sum(_value) as views WHERE index=caca_metrics AND pretty_name="$dashboard_name$" AND metric_name="dashboard.views" span=1d
 | timechart sum(views) as Views span=1d</query>
           <earliest>$time_range.earliest$</earliest>
           <latest>$time_range.latest$</latest>
@@ -138,12 +138,12 @@
         <option name="charting.drilldown">none</option>
       </chart>
     </panel>
-    
+
     <panel>
       <title>Load Time Trend Over Time</title>
       <chart>
         <search>
-          <query>| mstats avg(_value) as avg_load WHERE index=caca_metrics AND pretty_name="$dashboard_name$" AND metric_name="dashboard.load_time" span=1h 
+          <query>| mstats avg(_value) as avg_load WHERE index=caca_metrics AND pretty_name="$dashboard_name$" AND metric_name="dashboard.load_time" span=1h
 | timechart avg(avg_load) as "Avg Load Time (ms)" span=1h</query>
           <earliest>$time_range.earliest$</earliest>
           <latest>$time_range.latest$</latest>
@@ -157,16 +157,16 @@
       </chart>
     </panel>
   </row>
-  
+
   <!-- User Activity Breakdown -->
   <row>
     <panel>
       <title>Top Users by Views</title>
       <table>
         <search>
-          <query>| mstats sum(_value) as views WHERE index=caca_metrics AND pretty_name="$dashboard_name$" AND metric_name="dashboard.views" BY user span=1d 
-| stats sum(views) as total_views by user 
-| sort -total_views 
+          <query>| mstats sum(_value) as views WHERE index=caca_metrics AND pretty_name="$dashboard_name$" AND metric_name="dashboard.views" BY user span=1d
+| stats sum(views) as total_views by user
+| sort -total_views
 | head 10
 | rename user as "User", total_views as "Total Views"</query>
           <earliest>$time_range.earliest$</earliest>
@@ -179,15 +179,15 @@
         </format>
       </table>
     </panel>
-    
+
     <panel>
       <title>Edit History</title>
       <table>
         <search>
-          <query>| mstats sum(_value) as edits WHERE index=caca_metrics AND pretty_name="$dashboard_name$" AND metric_name="dashboard.edits" BY user, activity_type span=1h 
-| eval edit_time=strftime(_time, "%Y-%m-%d %H:%M") 
-| stats sum(edits) as edit_count by edit_time user activity_type 
-| sort -edit_time 
+          <query>| mstats sum(_value) as edits WHERE index=caca_metrics AND pretty_name="$dashboard_name$" AND metric_name="dashboard.edits" BY user, activity_type span=1h
+| eval edit_time=strftime(_time, "%Y-%m-%d %H:%M")
+| stats sum(edits) as edit_count by edit_time user activity_type
+| sort -edit_time
 | rename edit_time as "Time", user as "User", activity_type as "Action", edit_count as "Count"</query>
           <earliest>$time_range.earliest$</earliest>
           <latest>$time_range.latest$</latest>
@@ -197,17 +197,17 @@
       </table>
     </panel>
   </row>
-  
+
   <!-- Error Details -->
   <row>
     <panel>
       <title>Error Details</title>
       <table>
         <search>
-          <query>| mstats sum(_value) as error_count WHERE index=caca_metrics AND pretty_name="$dashboard_name$" AND metric_name="dashboard.errors" BY severity span=1h 
-| eval error_time=strftime(_time, "%Y-%m-%d %H:%M") 
-| stats sum(error_count) as total_errors by error_time severity 
-| sort -error_time 
+          <query>| mstats sum(_value) as error_count WHERE index=caca_metrics AND pretty_name="$dashboard_name$" AND metric_name="dashboard.errors" BY severity span=1h
+| eval error_time=strftime(_time, "%Y-%m-%d %H:%M")
+| stats sum(error_count) as total_errors by error_time severity
+| sort -error_time
 | rename error_time as "Time", severity as "Severity", total_errors as "Error Count"</query>
           <earliest>$time_range.earliest$</earliest>
           <latest>$time_range.latest$</latest>
@@ -220,7 +220,7 @@
       </table>
     </panel>
   </row>
-  
+
   <!-- Back to Leaderboard -->
   <row>
     <panel>

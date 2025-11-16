@@ -1,14 +1,14 @@
 <form version="1.1">
   <label>CACA Admin Dashboard</label>
   <description>Administrative control panel for dashboard management - Edit, move, delete, and change permissions</description>
-  
+
   <fieldset submitButton="true" autoRun="false">
     <input type="text" token="name_filter">
       <label>Dashboard Name Filter</label>
       <default>*</default>
       <initialValue>*</initialValue>
     </input>
-    
+
     <input type="multiselect" token="app_filter">
       <label>Filter by App</label>
       <choice value="*">All Apps</choice>
@@ -25,7 +25,7 @@
       <valueSuffix>"</valueSuffix>
       <delimiter> OR </delimiter>
     </input>
-    
+
     <input type="multiselect" token="owner_filter">
       <label>Filter by Owner</label>
       <choice value="*">All Owners</choice>
@@ -42,7 +42,7 @@
       <valueSuffix>"</valueSuffix>
       <delimiter> OR </delimiter>
     </input>
-    
+
     <input type="multiselect" token="sharing_filter">
       <label>Filter by Sharing Level</label>
       <choice value="*">All Sharing Levels</choice>
@@ -55,7 +55,7 @@
       <valueSuffix>"</valueSuffix>
       <delimiter> OR </delimiter>
     </input>
-    
+
     <input type="multiselect" token="health_filter">
       <label>Filter by Health Status</label>
       <choice value="*">All Status</choice>
@@ -69,7 +69,7 @@
       <valueSuffix>"</valueSuffix>
       <delimiter> OR </delimiter>
     </input>
-    
+
     <input type="multiselect" token="perf_filter">
       <label>Filter by Performance</label>
       <choice value="*">All Performance</choice>
@@ -81,7 +81,7 @@
       <initialValue>*</initialValue>
       <delimiter> OR </delimiter>
     </input>
-    
+
     <input type="dropdown" token="load_time_period">
       <label>Load Time Analysis Period (affects Avg Total Load Time column)</label>
       <choice value="-24h">Last 24 Hours</choice>
@@ -91,7 +91,7 @@
       <default>-7d</default>
       <initialValue>-7d</initialValue>
     </input>
-    
+
     <input type="time" token="time_range">
       <label>Metrics Time Range</label>
       <default>
@@ -100,7 +100,7 @@
       </default>
     </input>
   </fieldset>
-  
+
   <!-- Summary KPIs -->
   <row>
     <panel>
@@ -127,7 +127,7 @@
         <option name="underLabel">Dashboards Matching Filter</option>
       </single>
     </panel>
-    
+
     <panel>
       <title>Total Views (Filtered)</title>
       <single>
@@ -153,7 +153,7 @@
         <option name="underLabel">Total Views (7d)</option>
       </single>
     </panel>
-    
+
     <panel>
       <title>Health Issues</title>
       <single>
@@ -180,7 +180,7 @@
         <option name="underLabel">Critical/Warning</option>
       </single>
     </panel>
-    
+
     <panel>
       <title>Performance Issues</title>
       <single>
@@ -208,7 +208,7 @@
       </single>
     </panel>
   </row>
-  
+
   <!-- Admin Instructions -->
   <row>
     <panel>
@@ -229,7 +229,7 @@
       </html>
     </panel>
   </row>
-  
+
   <!-- Main Dashboard Table with Actions -->
   <row>
     <panel>
@@ -264,10 +264,10 @@
     sharing=="app", "📦 App",
     sharing=="user", "🔒 Private",
     1=1, coalesce(sharing, "-"))
-| join type=left pretty_name 
-    [| mstats avg(_value) as avg_total_load_time WHERE index=caca_metrics AND metric_name="dashboard.load_time" BY pretty_name span=1h 
-    | where _time &gt;= relative_time(now(), "$load_time_period$") 
-    | stats avg(avg_total_load_time) as avg_total_load_time by pretty_name 
+| join type=left pretty_name
+    [| mstats avg(_value) as avg_total_load_time WHERE index=caca_metrics AND metric_name="dashboard.load_time" BY pretty_name span=1h
+    | where _time &gt;= relative_time(now(), "$load_time_period$")
+    | stats avg(avg_total_load_time) as avg_total_load_time by pretty_name
     | eval avg_total_load_time=round(avg_total_load_time, 0)]
 | fillnull value=0 avg_total_load_time
 | eval dashboard_link=dashboard_uri
@@ -318,7 +318,7 @@
       </table>
     </panel>
   </row>
-  
+
   <!-- Quick Actions Panel -->
   <row>
     <panel>
@@ -339,12 +339,12 @@
               🔍 Search
             </a>
           </div>
-          
+
           <hr style="margin: 25px 0;"/>
-          
+
           <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; border-left: 4px solid #0877a6;">
             <h4 style="margin-top: 0; color: #0877a6;">💡 Common Administrative Workflows</h4>
-            
+
             <h5 style="color: #333; margin-top: 15px;">To Change Dashboard Ownership:</h5>
             <ol>
               <li>Click "Manage All Dashboards" above</li>
@@ -353,7 +353,7 @@
               <li>Change the "Owner" field to the new owner</li>
               <li>Click "Save"</li>
             </ol>
-            
+
             <h5 style="color: #333; margin-top: 15px;">To Move Dashboard Between Apps:</h5>
             <ol>
               <li>Click "Manage All Dashboards" above</li>
@@ -362,7 +362,7 @@
               <li>Select the destination app</li>
               <li>Click "Move"</li>
             </ol>
-            
+
             <h5 style="color: #333; margin-top: 15px;">To Delete Dashboards (Bulk):</h5>
             <ol>
               <li>Use the filters above to narrow down candidates (e.g., stale dashboards)</li>
@@ -371,7 +371,7 @@
               <li>Use the search/filter in the management page to find each dashboard</li>
               <li>Select dashboards and click "Delete" for each, or use checkboxes for bulk delete</li>
             </ol>
-            
+
             <h5 style="color: #333; margin-top: 15px;">To Change Permissions:</h5>
             <ol>
               <li>Click the dashboard name in the table above to open it</li>
@@ -385,7 +385,7 @@
       </html>
     </panel>
   </row>
-  
+
   <!-- Bulk Action Recommendations -->
   <row>
     <panel>
@@ -441,7 +441,7 @@
       </table>
     </panel>
   </row>
-  
+
   <!-- Back Navigation -->
   <row>
     <panel>

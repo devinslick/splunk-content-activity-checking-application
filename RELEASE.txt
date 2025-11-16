@@ -22,8 +22,8 @@ This release includes:
 
 ### 🚀 Quick Start
 
-**Installation:** 5 minutes  
-**Setup:** 10 minutes  
+**Installation:** 5 minutes
+**Setup:** 10 minutes
 **First Data:** 15-30 minutes
 
 1. Install the app via Splunk Web

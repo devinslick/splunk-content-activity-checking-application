@@ -1,7 +1,7 @@
 <form version="1.1">
   <label>💩 CACA Analysis - The Poop Deck</label>
   <description>Deep dive analytics: Find the gems, flush the crap, and fix what's broken</description>
-  
+
   <fieldset submitButton="false">
     <input type="time" token="time_range">
       <label>Analysis Time Range</label>
@@ -20,16 +20,16 @@
       <choice value="365">1 Year</choice>
     </input>
   </fieldset>
-  
+
   <!-- Executive Summary -->
   <row>
     <panel>
       <title>💎 VIP Dashboards (Top 10%)</title>
       <single>
         <search>
-          <query>| mstats sum(_value) as total_views WHERE index=caca_metrics AND metric_name="dashboard.views" BY pretty_name span=1d 
+          <query>| mstats sum(_value) as total_views WHERE index=caca_metrics AND metric_name="dashboard.views" BY pretty_name span=1d
 | where _time >= relative_time(now(), "-30d")
-| stats sum(total_views) as views_30d by pretty_name 
+| stats sum(total_views) as views_30d by pretty_name
 | eventstats perc90(views_30d) as p90
 | where views_30d >= p90
 | stats count as vip_count</query>
@@ -42,13 +42,13 @@
         <option name="underLabel">High-Value Content</option>
       </single>
     </panel>
-    
+
     <panel>
       <title>💩 Crap Candidates (Stale)</title>
       <single>
         <search>
-          <query>| mstats latest(_value) as last_view WHERE index=caca_metrics AND metric_name="dashboard.views" BY pretty_name 
-| eval days_since=round((now()-_time)/86400, 0) 
+          <query>| mstats latest(_value) as last_view WHERE index=caca_metrics AND metric_name="dashboard.views" BY pretty_name
+| eval days_since=round((now()-_time)/86400, 0)
 | where days_since > $stale_threshold$ OR isnull(last_view)
 | stats count as stale_count</query>
           <earliest>$time_range.earliest$</earliest>
@@ -61,14 +61,14 @@
         <option name="underLabel">Ready for Cleanup</option>
       </single>
     </panel>
-    
+
     <panel>
       <title>🔧 Broken Dashboards</title>
       <single>
         <search>
-          <query>| mstats sum(_value) as error_count WHERE index=caca_metrics AND metric_name="dashboard.errors" BY pretty_name span=1d 
+          <query>| mstats sum(_value) as error_count WHERE index=caca_metrics AND metric_name="dashboard.errors" BY pretty_name span=1d
 | where _time >= relative_time(now(), "-7d")
-| stats sum(error_count) as total_errors by pretty_name 
+| stats sum(error_count) as total_errors by pretty_name
 | where total_errors > 0
 | stats count as broken_count</query>
           <earliest>-7d@d</earliest>
@@ -81,12 +81,12 @@
         <option name="underLabel">Need Attention</option>
       </single>
     </panel>
-    
+
     <panel>
       <title>🐌 Slow Dashboards</title>
       <single>
         <search>
-          <query>| mstats avg(avg_load_time) as avg_load WHERE index=caca_metrics AND metric_name="dashboard.load_time" BY pretty_name span=1d 
+          <query>| mstats avg(avg_load_time) as avg_load WHERE index=caca_metrics AND metric_name="dashboard.load_time" BY pretty_name span=1d
 | where _time >= relative_time(now(), "-7d")
 | stats avg(avg_load) as avg_load_time by pretty_name
 | where avg_load_time &gt; 5000
@@ -101,13 +101,13 @@
         <option name="underLabel">Performance Issues</option>
       </single>
     </panel>
-    
+
     <panel>
       <title>👻 Ghost Dashboards</title>
       <single>
         <search>
-          <query>| inputlookup dashboard_registry 
-| join type=left pretty_name 
+          <query>| inputlookup dashboard_registry
+| join type=left pretty_name
     [| mstats latest(_value) as last_view WHERE index=caca_metrics AND metric_name="dashboard.views" BY pretty_name]
 | where isnull(last_view)
 | stats count as never_viewed</query>
@@ -121,27 +121,27 @@
       </single>
     </panel>
   </row>
-  
+
   <!-- The Good: High Performers -->
   <row>
     <panel>
       <title>💎 The Gems - Most Valuable Dashboards (Last 30 Days)</title>
       <table>
         <search>
-          <query>| mstats sum(_value) as metric_value WHERE index=caca_metrics BY pretty_name, metric_name, app span=1d 
+          <query>| mstats sum(_value) as metric_value WHERE index=caca_metrics BY pretty_name, metric_name, app span=1d
 | where _time >= relative_time(now(), "-30d")
-| stats sum(metric_value) as total by pretty_name, metric_name, app 
+| stats sum(metric_value) as total by pretty_name, metric_name, app
 | eval metric_type=case(
     metric_name=="dashboard.views", "views",
     metric_name=="dashboard.edits", "edits",
     metric_name=="dashboard.errors", "errors",
     1=1, "other")
-| eval {metric_type}=total 
-| stats values(app) as app sum(views) as views_30d sum(edits) as edits_30d sum(errors) as errors_30d by pretty_name 
+| eval {metric_type}=total
+| stats values(app) as app sum(views) as views_30d sum(edits) as edits_30d sum(errors) as errors_30d by pretty_name
 | fillnull value=0 views_30d edits_30d errors_30d
 | eval engagement_score=views_30d + (edits_30d * 2) - (errors_30d * 5)
 | where views_30d > 0
-| sort -engagement_score 
+| sort -engagement_score
 | head 20
 | lookup dashboard_registry pretty_name OUTPUT owner description
 | eval health=case(errors_30d==0, "✓", errors_30d&lt;5, "⚠", 1=1, "✗")
@@ -173,16 +173,16 @@
       </table>
     </panel>
   </row>
-  
+
   <!-- The Bad: Stale Content -->
   <row>
     <panel>
       <title>💩 The Crap - Stale Dashboards (Not Viewed in $stale_threshold$ Days)</title>
       <table>
         <search>
-          <query>| inputlookup dashboard_registry 
-| join type=left pretty_name 
-    [| mstats latest(_value) as last_view WHERE index=caca_metrics AND metric_name="dashboard.views" BY pretty_name 
+          <query>| inputlookup dashboard_registry
+| join type=left pretty_name
+    [| mstats latest(_value) as last_view WHERE index=caca_metrics AND metric_name="dashboard.views" BY pretty_name
     | eval last_viewed_time=_time
     | eval days_since_view=round((now()-_time)/86400, 1)]
 | eval days_since_view=if(isnull(days_since_view), 999, days_since_view)
@@ -220,23 +220,23 @@
       </table>
     </panel>
   </row>
-  
+
   <!-- The Ugly: Broken Content -->
   <row>
     <panel>
       <title>🔧 The Broken - Dashboards with Health Issues (Last 7 Days)</title>
       <table>
         <search>
-          <query>| mstats sum(_value) as error_count WHERE index=caca_metrics AND metric_name="dashboard.errors" BY pretty_name, severity span=1d 
+          <query>| mstats sum(_value) as error_count WHERE index=caca_metrics AND metric_name="dashboard.errors" BY pretty_name, severity span=1d
 | where _time >= relative_time(now(), "-7d")
-| stats sum(error_count) as total_errors by pretty_name, severity 
+| stats sum(error_count) as total_errors by pretty_name, severity
 | eval {severity}=total_errors
 | stats sum(error) as errors sum(warn) as warnings values(error) as has_errors values(warn) as has_warns by pretty_name
 | fillnull value=0 errors warnings
 | eval total_issues=errors+warnings
 | where total_issues > 0
 | lookup dashboard_registry pretty_name OUTPUT app owner description
-| join type=left pretty_name 
+| join type=left pretty_name
     [| mstats sum(_value) as views WHERE index=caca_metrics AND metric_name="dashboard.views" BY pretty_name span=1d
     | where _time >= relative_time(now(), "-7d")
     | stats sum(views) as views_7d by pretty_name]
@@ -278,20 +278,20 @@
       </table>
     </panel>
   </row>
-  
+
   <!-- The Slow: Performance Issues -->
   <row>
     <panel>
       <title>🐌 The Slow - Dashboards with Performance Issues (Last 7 Days)</title>
       <table>
         <search>
-          <query>| mstats avg(_value) as avg_load WHERE index=caca_metrics AND metric_name="dashboard.load_time" BY pretty_name, app span=1d 
+          <query>| mstats avg(_value) as avg_load WHERE index=caca_metrics AND metric_name="dashboard.load_time" BY pretty_name, app span=1d
 | where _time >= relative_time(now(), "-7d")
 | stats avg(avg_load) as avg_load_time by pretty_name, app
 | where avg_load_time &gt; 3000
 | eval avg_load_time=round(avg_load_time, 0)
 | lookup dashboard_registry pretty_name OUTPUT owner description
-| join type=left pretty_name 
+| join type=left pretty_name
     [| mstats sum(_value) as views WHERE index=caca_metrics AND metric_name="dashboard.views" BY pretty_name span=1d
     | where _time >= relative_time(now(), "-7d")
     | stats sum(views) as views_7d by pretty_name]
@@ -334,27 +334,27 @@
       </table>
     </panel>
   </row>
-  
+
   <!-- The Neglected: Low Engagement -->
   <row>
     <panel>
       <title>😴 The Neglected - Low Engagement Dashboards (Active but Underused)</title>
       <table>
         <search>
-          <query>| mstats sum(_value) as metric_value WHERE index=caca_metrics BY pretty_name, metric_name, app span=1d 
+          <query>| mstats sum(_value) as metric_value WHERE index=caca_metrics BY pretty_name, metric_name, app span=1d
 | where _time >= relative_time(now(), "-30d")
-| stats sum(metric_value) as total by pretty_name, metric_name, app 
+| stats sum(metric_value) as total by pretty_name, metric_name, app
 | eval metric_type=case(
     metric_name=="dashboard.views", "views",
     metric_name=="dashboard.edits", "edits",
     1=1, "other")
-| eval {metric_type}=total 
-| stats values(app) as app sum(views) as views_30d sum(edits) as edits_30d by pretty_name 
+| eval {metric_type}=total
+| stats values(app) as app sum(views) as views_30d sum(edits) as edits_30d by pretty_name
 | fillnull value=0 views_30d edits_30d
 | where views_30d > 0 AND views_30d &lt; 20
 | lookup dashboard_registry pretty_name OUTPUT owner description
-| join type=left pretty_name 
-    [| mstats latest(_value) as last_view WHERE index=caca_metrics AND metric_name="dashboard.views" BY pretty_name 
+| join type=left pretty_name
+    [| mstats latest(_value) as last_view WHERE index=caca_metrics AND metric_name="dashboard.views" BY pretty_name
     | eval last_viewed=strftime(_time, "%Y-%m-%d")]
 | eval avg_views_per_day=round(views_30d/30, 1)
 | eval status=case(
@@ -387,19 +387,19 @@
       </table>
     </panel>
   </row>
-  
+
   <!-- The Diamonds: High Edit Activity -->
   <row>
     <panel>
       <title>💠 The Work in Progress - Most Edited Dashboards (Active Development)</title>
       <table>
         <search>
-          <query>| mstats sum(_value) as edits WHERE index=caca_metrics AND metric_name="dashboard.edits" BY pretty_name, app, user span=1d 
+          <query>| mstats sum(_value) as edits WHERE index=caca_metrics AND metric_name="dashboard.edits" BY pretty_name, app, user span=1d
 | where _time >= relative_time(now(), "-30d")
 | stats sum(edits) as total_edits dc(user) as unique_editors by pretty_name, app
 | where total_edits > 0
 | lookup dashboard_registry pretty_name OUTPUT owner description
-| join type=left pretty_name 
+| join type=left pretty_name
     [| mstats sum(_value) as views WHERE index=caca_metrics AND metric_name="dashboard.views" BY pretty_name span=1d
     | where _time >= relative_time(now(), "-30d")
     | stats sum(views) as views_30d by pretty_name]
@@ -439,7 +439,7 @@
       </table>
     </panel>
   </row>
-  
+
   <!-- Back to main -->
   <row>
     <panel>

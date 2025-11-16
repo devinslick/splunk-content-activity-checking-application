@@ -109,7 +109,7 @@ Built-in documentation for common tasks:
 Automated analysis that identifies dashboards requiring attention:
 
 - **Priority Levels**: URGENT, HIGH, MEDIUM, CONSIDER
-- **Action Types**: 
+- **Action Types**:
   - Fix/Debug - Critical or warning health issues
   - Optimize - Performance improvements needed
   - Archive/Delete - Stale or unused dashboards

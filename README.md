@@ -117,15 +117,15 @@ Run the registry update search to populate the dashboard registry:
 
 ```spl
 | rest /services/data/ui/views splunk_server=local count=0 search="sharing=*"
-| search isDashboard=1 OR isVisible=1 
-| eval dashboard_uri="/app/".eai:acl.app."/".title 
-| eval pretty_name=coalesce(label, title) 
-| eval app=eai:acl.app 
-| eval owner=eai:acl.owner 
+| search isDashboard=1 OR isVisible=1
+| eval dashboard_uri="/app/".eai:acl.app."/".title
+| eval pretty_name=coalesce(label, title)
+| eval app=eai:acl.app
+| eval owner=eai:acl.owner
 | eval sharing=eai:acl.sharing
-| eval description=coalesce(eai:data, "") 
-| eval status="active" 
-| table dashboard_uri pretty_name app owner sharing description status 
+| eval description=coalesce(eai:data, "")
+| eval status="active"
+| table dashboard_uri pretty_name app owner sharing description status
 | outputlookup dashboard_registry.csv
 ```
 
@@ -209,7 +209,7 @@ Add this panel to your dashboard XML:
     <title>Dashboard Views (7d)</title>
     <single>
       <search>
-        <query>| mstats sum(_value) as total WHERE index=caca_metrics AND pretty_name="YOUR_DASHBOARD_NAME" AND metric_name="dashboard.views" span=1d 
+        <query>| mstats sum(_value) as total WHERE index=caca_metrics AND pretty_name="YOUR_DASHBOARD_NAME" AND metric_name="dashboard.views" span=1d
 | where _time >= relative_time(now(), "-7d")
 | stats sum(total) as views</query>
         <earliest>-7d</earliest>
@@ -327,7 +327,7 @@ CACA provides several search macros for easy querying. These macros help you qui
 **List dashboards with errors that are actively used:**
 ```spl
 `get_dashboards_with_errors`
-| where errors > 0 
+| where errors > 0
 | join type=inner pretty_name [| mstats sum(_value) as views WHERE index=caca_metrics AND metric_name="dashboard.views" BY pretty_name span=1d | where _time >= relative_time(now(), "-7d") | stats sum(views) as views_7d by pretty_name | where views_7d > 10]
 | table pretty_name app errors warnings views_7d health_status
 ```
@@ -344,7 +344,7 @@ CACA provides several search macros for easy querying. These macros help you qui
 **Dashboard health report for a specific app:**
 ```spl
 `get_all_dashboards_summary`
-| where app="search" 
+| where app="search"
 | table pretty_name views_7d edits_7d errors_7d avg_load_time_7d health_status
 | sort -errors_7d
 ```
@@ -459,14 +459,14 @@ Edit `lookups/dashboard_registry.csv` and set `status=inactive` for specific das
 Run the registry update search manually:
 ```spl
 | rest /services/data/ui/views splunk_server=local count=0 search="sharing=*"
-| search isDashboard=1 OR isVisible=1 
-| eval dashboard_uri="/app/".eai:acl.app."/".title 
-| eval pretty_name=coalesce(label, title) 
-| eval app=eai:acl.app 
-| eval owner=eai:acl.owner 
+| search isDashboard=1 OR isVisible=1
+| eval dashboard_uri="/app/".eai:acl.app."/".title
+| eval pretty_name=coalesce(label, title)
+| eval app=eai:acl.app
+| eval owner=eai:acl.owner
 | eval sharing=eai:acl.sharing
-| eval status="active" 
-| table dashboard_uri pretty_name app owner sharing status 
+| eval status="active"
+| table dashboard_uri pretty_name app owner sharing status
 | outputlookup dashboard_registry.csv
 ```
 

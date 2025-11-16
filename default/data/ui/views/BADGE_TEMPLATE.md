@@ -17,9 +17,9 @@ This template provides a reusable badge panel that can be embedded into any dash
     <title>📊 Dashboard Health Badge</title>
     <table>
       <search>
-        <query>| mstats sum(_value) as metric_value WHERE index=caca_metrics AND pretty_name="YOUR_DASHBOARD_NAME" BY metric_name span=1d 
+        <query>| mstats sum(_value) as metric_value WHERE index=caca_metrics AND pretty_name="YOUR_DASHBOARD_NAME" BY metric_name span=1d
 | where _time >= relative_time(now(), "-7d")
-| stats sum(metric_value) as total by metric_name 
+| stats sum(metric_value) as total by metric_name
 | eval metric_display=case(
     metric_name=="dashboard.views", "Views (7d)",
     metric_name=="dashboard.edits", "Edits (7d)",
@@ -58,7 +58,7 @@ For a more compact badge, use this single stat version:
     <title>Views (7d)</title>
     <single>
       <search>
-        <query>| mstats sum(_value) as total WHERE index=caca_metrics AND pretty_name="YOUR_DASHBOARD_NAME" AND metric_name="dashboard.views" span=1d 
+        <query>| mstats sum(_value) as total WHERE index=caca_metrics AND pretty_name="YOUR_DASHBOARD_NAME" AND metric_name="dashboard.views" span=1d
 | where _time >= relative_time(now(), "-7d")
 | stats sum(total) as views_7d</query>
         <earliest>-7d@h</earliest>
@@ -69,12 +69,12 @@ For a more compact badge, use this single stat version:
       <option name="underLabel">Dashboard Views</option>
     </single>
   </panel>
-  
+
   <panel>
     <title>Health Status</title>
     <single>
       <search>
-        <query>| mstats sum(_value) as errors WHERE index=caca_metrics AND pretty_name="YOUR_DASHBOARD_NAME" AND metric_name="dashboard.errors" span=1d 
+        <query>| mstats sum(_value) as errors WHERE index=caca_metrics AND pretty_name="YOUR_DASHBOARD_NAME" AND metric_name="dashboard.errors" span=1d
 | where _time >= relative_time(now(), "-7d")
 | stats sum(errors) as error_count
 | eval status=case(error_count > 10, "CRITICAL", error_count > 0, "WARNING", 1=1, "HEALTHY")
@@ -121,14 +121,14 @@ Modify `rangeColors` to match your theme:
 ```xml
 <dashboard>
   <label>My Dashboard with CACA Badge</label>
-  
+
   <!-- CACA Badge at the top -->
   <row>
     <panel>
       <title>📊 Dashboard Metrics</title>
       <single>
         <search>
-          <query>| mstats sum(_value) as total WHERE index=caca_metrics AND pretty_name="My Dashboard" AND metric_name="dashboard.views" span=1d 
+          <query>| mstats sum(_value) as total WHERE index=caca_metrics AND pretty_name="My Dashboard" AND metric_name="dashboard.views" span=1d
 | where _time >= relative_time(now(), "-7d")
 | stats sum(total) as views</query>
           <earliest>-7d</earliest>
@@ -138,7 +138,7 @@ Modify `rangeColors` to match your theme:
       </single>
     </panel>
   </row>
-  
+
   <!-- Your regular dashboard content below -->
   <row>
     <panel>
@@ -158,7 +158,7 @@ Modify `rangeColors` to match your theme:
 To find your dashboard's `pretty_name`, run this search:
 
 ```spl
-| inputlookup dashboard_registry 
+| inputlookup dashboard_registry
 | search dashboard_uri="*YOUR_DASHBOARD*"
 | table dashboard_uri pretty_name app
 ```

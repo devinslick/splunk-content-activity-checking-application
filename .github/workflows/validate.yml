@@ -1,0 +1,347 @@
+name: Validate Splunk App
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install splunk-appinspect xmlschema jsonschema pyyaml
+
+    - name: Validate JSON files
+      run: |
+        echo "Validating app.manifest..."
+        python -c "import json; json.load(open('app.manifest'))"
+        echo "✓ app.manifest is valid JSON"
+
+    - name: Validate XML files
+      run: |
+        echo "Validating XML files..."
+        for file in $(find default/data/ui -name "*.xml"); do
+          echo "Checking $file..."
+          python -c "import xml.etree.ElementTree as ET; ET.parse('$file')"
+        done
+        echo "✓ All XML files are well-formed"
+
+    - name: Check version consistency
+      run: |
+        echo "Checking version consistency..."
+        MANIFEST_VERSION=$(python -c "import json; print(json.load(open('app.manifest'))['info']['id']['version'])")
+        APP_CONF_VERSION=$(grep -E "^version\s*=" default/app.conf | sed 's/.*=\s*//' | tr -d ' ')
+
+        echo "app.manifest version: $MANIFEST_VERSION"
+        echo "app.conf version: $APP_CONF_VERSION"
+
+        if [ "$MANIFEST_VERSION" != "$APP_CONF_VERSION" ]; then
+          echo "❌ Version mismatch between app.manifest and app.conf"
+          exit 1
+        fi
+        echo "✓ Versions are consistent"
+
+    - name: Check app ID consistency
+      run: |
+        echo "Checking app ID consistency..."
+        MANIFEST_ID=$(python -c "import json; print(json.load(open('app.manifest'))['info']['id']['name'])")
+        APP_CONF_ID=$(grep -E "^id\s*=" default/app.conf | sed 's/.*=\s*//' | tr -d ' ')
+
+        echo "app.manifest id: $MANIFEST_ID"
+        echo "app.conf id: $APP_CONF_ID"
+
+        if [ "$MANIFEST_ID" != "$APP_CONF_ID" ]; then
+          echo "❌ App ID mismatch between app.manifest and app.conf"
+          exit 1
+        fi
+        echo "✓ App IDs are consistent"
+
+    - name: Validate .conf file syntax
+      run: |
+        echo "Validating .conf files..."
+        python << 'EOF'
+        import re
+        import sys
+        from pathlib import Path
+
+        errors = []
+        conf_files = list(Path('default').glob('*.conf'))
+
+        for conf_file in conf_files:
+            print(f"Checking {conf_file}...")
+            with open(conf_file, 'r', encoding='utf-8') as f:
+                lines = f.readlines()
+                in_stanza = False
+                for i, line in enumerate(lines, 1):
+                    line = line.strip()
+                    if not line or line.startswith('#'):
+                        continue
+                    if line.startswith('[') and line.endswith(']'):
+                        in_stanza = True
+                        continue
+                    if in_stanza and '=' in line:
+                        key, value = line.split('=', 1)
+                        if not key.strip():
+                            errors.append(f"{conf_file}:{i} - Empty key in key=value pair")
+
+        if errors:
+            print("❌ Configuration file errors:")
+            for error in errors:
+                print(f"  {error}")
+            sys.exit(1)
+        else:
+            print("✓ All .conf files have valid syntax")
+        EOF
+
+    - name: Check for sensitive data
+      run: |
+        echo "Scanning for potential sensitive data..."
+        python << 'EOF'
+        import re
+        import sys
+        from pathlib import Path
+
+        patterns = [
+            (r'password\s*=\s*[^\s]+', 'Potential hardcoded password'),
+            (r'token\s*=\s*[^\s]+', 'Potential hardcoded token'),
+            (r'api[_-]?key\s*=\s*[^\s]+', 'Potential hardcoded API key'),
+            (r'secret\s*=\s*[^\s]+', 'Potential hardcoded secret'),
+        ]
+
+        issues = []
+        for conf_file in Path('default').glob('*.conf'):
+            with open(conf_file, 'r', encoding='utf-8') as f:
+                for i, line in enumerate(f, 1):
+                    if line.strip().startswith('#'):
+                        continue
+                    for pattern, message in patterns:
+                        if re.search(pattern, line, re.IGNORECASE):
+                            issues.append(f"{conf_file}:{i} - {message}")
+
+        if issues:
+            print("⚠️ Warning: Potential sensitive data found:")
+            for issue in issues:
+                print(f"  {issue}")
+            # Don't fail build, just warn
+        else:
+            print("✓ No obvious sensitive data detected")
+        EOF
+
+    - name: Validate lookup definitions
+      run: |
+        echo "Validating lookup tables..."
+        python << 'EOF'
+        import re
+        import sys
+        from pathlib import Path
+
+        # Parse transforms.conf for lookup definitions
+        transforms_file = Path('default/transforms.conf')
+        lookups_defined = set()
+
+        if transforms_file.exists():
+            with open(transforms_file, 'r') as f:
+                for line in f:
+                    match = re.match(r'^\[([^\]]+)\]', line.strip())
+                    if match:
+                        lookups_defined.add(match.group(1))
+
+        # Check if CSV files exist
+        lookups_dir = Path('lookups')
+        errors = []
+
+        if lookups_dir.exists():
+            for lookup_def in lookups_defined:
+                # Extract CSV filename from definition name (common pattern)
+                csv_file = lookups_dir / f"{lookup_def}.csv"
+                if not csv_file.exists():
+                    # Try without prefix if it has one
+                    parts = lookup_def.split('_', 1)
+                    if len(parts) > 1:
+                        csv_file = lookups_dir / f"{parts[1]}.csv"
+                    if not csv_file.exists():
+                        errors.append(f"Lookup '{lookup_def}' defined but CSV not found in lookups/")
+
+        if errors:
+            print("⚠️ Lookup warnings:")
+            for error in errors:
+                print(f"  {error}")
+        else:
+            print(f"✓ Found {len(lookups_defined)} lookup definitions")
+        EOF
+
+    - name: Check required files
+      run: |
+        echo "Checking for required files..."
+        REQUIRED_FILES=(
+          "app.manifest"
+          "default/app.conf"
+          "README.md"
+          "LICENSE"
+          "metadata/default.meta"
+        )
+
+        MISSING=()
+        for file in "${REQUIRED_FILES[@]}"; do
+          if [ ! -f "$file" ]; then
+            MISSING+=("$file")
+          fi
+        done
+
+        if [ ${#MISSING[@]} -ne 0 ]; then
+          echo "❌ Missing required files:"
+          printf '  %s\n' "${MISSING[@]}"
+          exit 1
+        fi
+        echo "✓ All required files present"
+
+    - name: Run Splunk AppInspect
+      run: |
+        echo "Running Splunk AppInspect..."
+        # Create a temporary package directory
+        PACKAGE_DIR="caca-package"
+        mkdir -p "$PACKAGE_DIR"
+
+        # Copy app files excluding development files
+        rsync -av --exclude='.git*' --exclude='local/' --exclude='devnotes/' \
+          --exclude='*.pyc' --exclude='__pycache__/' --exclude='.DS_Store' \
+          ./ "$PACKAGE_DIR/"
+
+        # Run AppInspect
+        splunk-appinspect inspect "$PACKAGE_DIR" \
+          --mode precert \
+          --included-tags cloud \
+          --output-file appinspect_report.json || true
+
+        # Check if report was generated
+        if [ -f appinspect_report.json ]; then
+          echo "✓ AppInspect completed - see artifact for results"
+        else
+          echo "⚠️ AppInspect report not generated"
+        fi
+
+    - name: Upload AppInspect Report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: appinspect-report
+        path: appinspect_report.json
+        if-no-files-found: ignore
+
+    - name: Check AppInspect Results
+      if: always()
+      run: |
+        if [ -f appinspect_report.json ]; then
+          python << 'EOF'
+        import json
+        import sys
+
+        with open('appinspect_report.json', 'r') as f:
+            report = json.load(f)
+
+        summary = report.get('summary', {})
+        failure = summary.get('failure', 0)
+        error = summary.get('error', 0)
+        warning = summary.get('warning', 0)
+
+        print(f"\nAppInspect Summary:")
+        print(f"  Failures: {failure}")
+        print(f"  Errors: {error}")
+        print(f"  Warnings: {warning}")
+
+        if failure > 0 or error > 0:
+            print("\n❌ AppInspect found failures or errors")
+            sys.exit(1)
+        elif warning > 0:
+            print("\n⚠️ AppInspect found warnings (not failing build)")
+        else:
+            print("\n✓ AppInspect passed with no issues")
+        EOF
+        else
+          echo "No AppInspect report to check"
+        fi
+
+  package-validation:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Check for unwanted files in package
+      run: |
+        echo "Checking for files that should not be in package..."
+        UNWANTED_PATTERNS=(
+          ".git"
+          ".github"
+          "local/"
+          "__pycache__"
+          "*.pyc"
+          ".DS_Store"
+          ".vscode"
+          "*.swp"
+          "*.swo"
+        )
+
+        FOUND=()
+        for pattern in "${UNWANTED_PATTERNS[@]}"; do
+          if compgen -G "$pattern" > /dev/null 2>&1; then
+            FOUND+=("$pattern")
+          fi
+        done
+
+        # Check local/ specifically (it might exist but should be in .gitignore)
+        if [ -d "local" ] && [ "$(ls -A local)" ]; then
+          echo "⚠️ Warning: local/ directory exists and is not empty"
+        fi
+
+        if [ ${#FOUND[@]} -ne 0 ]; then
+          echo "⚠️ Warning: Found unwanted patterns (ensure they're in .gitignore):"
+          printf '  %s\n' "${FOUND[@]}"
+        else
+          echo "✓ No unwanted files found"
+        fi
+
+    - name: Validate .gitignore coverage
+      run: |
+        echo "Checking .gitignore coverage..."
+        SHOULD_IGNORE=(
+          "local/"
+          "*.pyc"
+          "__pycache__/"
+          ".DS_Store"
+          "*.log"
+        )
+
+        if [ ! -f .gitignore ]; then
+          echo "⚠️ Warning: No .gitignore file found"
+          exit 0
+        fi
+
+        MISSING=()
+        for pattern in "${SHOULD_IGNORE[@]}"; do
+          if ! grep -q "^${pattern}$" .gitignore; then
+            MISSING+=("$pattern")
+          fi
+        done
+
+        if [ ${#MISSING[@]} -ne 0 ]; then
+          echo "⚠️ Recommended patterns not in .gitignore:"
+          printf '  %s\n' "${MISSING[@]}"
+        else
+          echo "✓ .gitignore covers recommended patterns"
+        fi

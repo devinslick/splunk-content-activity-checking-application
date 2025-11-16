@@ -1,7 +1,7 @@
 <form version="1.1">
   <label>CACA - Dashboard Leaderboard</label>
   <description>Content Activity Checking Application - Monitor all dashboard usage, health, and activity</description>
-  
+
   <fieldset submitButton="false">
     <input type="time" token="time_range">
       <label>Time Range</label>
@@ -11,7 +11,7 @@
       </default>
     </input>
   </fieldset>
-  
+
   <!-- High-Level KPIs -->
   <row>
     <panel>
@@ -28,13 +28,13 @@
         <option name="underLabel">Registered</option>
       </single>
     </panel>
-    
+
     <panel>
       <title>Total Views (7 days)</title>
       <single>
         <search>
-          <query>| mstats sum(_value) as total WHERE index=caca_metrics AND metric_name="dashboard.views" span=1d 
-| stats sum(total) as total_views 
+          <query>| mstats sum(_value) as total WHERE index=caca_metrics AND metric_name="dashboard.views" span=1d
+| stats sum(total) as total_views
 | eval total_views=round(total_views, 0)</query>
           <earliest>-7d@h</earliest>
           <latest>now</latest>
@@ -46,14 +46,14 @@
         <option name="underLabel">Total Views</option>
       </single>
     </panel>
-    
+
     <panel>
       <title>Dashboards with Errors</title>
       <single>
         <search>
-          <query>| mstats sum(_value) as error_count WHERE index=caca_metrics AND metric_name="dashboard.errors" BY pretty_name span=1d 
-| stats sum(error_count) as total_errors by pretty_name 
-| where total_errors > 0 
+          <query>| mstats sum(_value) as error_count WHERE index=caca_metrics AND metric_name="dashboard.errors" BY pretty_name span=1d
+| stats sum(error_count) as total_errors by pretty_name
+| where total_errors > 0
 | stats dc(pretty_name) as dashboards_with_errors</query>
           <earliest>-7d@h</earliest>
           <latest>now</latest>
@@ -65,13 +65,13 @@
         <option name="underLabel">With Errors</option>
       </single>
     </panel>
-    
+
     <panel>
       <title>Avg Load Time (7d)</title>
       <single>
         <search>
-          <query>| mstats avg(avg_load_time) as overall_avg WHERE index=caca_metrics AND metric_name="dashboard.load_time" span=1d 
-| stats avg(overall_avg) as avg_load_time 
+          <query>| mstats avg(avg_load_time) as overall_avg WHERE index=caca_metrics AND metric_name="dashboard.load_time" span=1d
+| stats avg(overall_avg) as avg_load_time
 | eval avg_load_time=round(avg_load_time, 0)." ms"</query>
           <earliest>-7d@h</earliest>
           <latest>now</latest>
@@ -83,13 +83,13 @@
         <option name="underLabel">Performance</option>
       </single>
     </panel>
-    
+
     <panel>
       <title>Stale Dashboards</title>
       <single>
         <search>
-          <query>| mstats latest(_value) as last_view WHERE index=caca_metrics AND metric_name="dashboard.views" BY pretty_name 
-| eval days_since=round((now()-_time)/86400, 0) 
+          <query>| mstats latest(_value) as last_view WHERE index=caca_metrics AND metric_name="dashboard.views" BY pretty_name
+| eval days_since=round((now()-_time)/86400, 0)
 | where days_since > 30 OR isnull(last_view)
 | stats count as stale_count</query>
           <earliest>-90d@d</earliest>
@@ -103,7 +103,7 @@
       </single>
     </panel>
   </row>
-  
+
   <!-- Main Leaderboard Table -->
   <row>
     <panel>
@@ -111,7 +111,7 @@
       <table>
         <search>
           <query>`get_all_dashboards_summary`
-| lookup dashboard_registry pretty_name OUTPUT owner description 
+| lookup dashboard_registry pretty_name OUTPUT owner description
 | eval avg_load_time_7d=round(avg_load_time_7d, 0)
 | eval perf_rating=case(
     avg_load_time_7d == 0, "-",
@@ -160,14 +160,14 @@
       </table>
     </panel>
   </row>
-  
+
   <!-- Trending Charts -->
   <row>
     <panel>
       <title>Dashboard Views Trend (Last 7 Days)</title>
       <chart>
         <search>
-          <query>| mstats sum(_value) as views WHERE index=caca_metrics AND metric_name="dashboard.views" BY pretty_name span=1d 
+          <query>| mstats sum(_value) as views WHERE index=caca_metrics AND metric_name="dashboard.views" BY pretty_name span=1d
 | timechart sum(views) as "Total Views" span=1d</query>
           <earliest>-7d@h</earliest>
           <latest>now</latest>
@@ -179,12 +179,12 @@
         <option name="charting.drilldown">none</option>
       </chart>
     </panel>
-    
+
     <panel>
       <title>Error Trend (Last 7 Days)</title>
       <chart>
         <search>
-          <query>| mstats sum(_value) as errors WHERE index=caca_metrics AND metric_name="dashboard.errors" BY pretty_name span=1d 
+          <query>| mstats sum(_value) as errors WHERE index=caca_metrics AND metric_name="dashboard.errors" BY pretty_name span=1d
 | timechart sum(errors) as "Total Errors" span=1d</query>
           <earliest>-7d@h</earliest>
           <latest>now</latest>
@@ -198,14 +198,14 @@
       </chart>
     </panel>
   </row>
-  
+
   <!-- Performance Trending -->
   <row>
     <panel>
       <title>Average Load Time Trend (Last 7 Days)</title>
       <chart>
         <search>
-          <query>| mstats avg(avg_load_time) as avg_load WHERE index=caca_metrics AND metric_name="dashboard.load_time" span=1d 
+          <query>| mstats avg(avg_load_time) as avg_load WHERE index=caca_metrics AND metric_name="dashboard.load_time" span=1d
 | timechart avg(avg_load) as "Avg Load Time (ms)" span=1d</query>
           <earliest>-7d@h</earliest>
           <latest>now</latest>
@@ -218,7 +218,7 @@
         <option name="charting.drilldown">none</option>
       </chart>
     </panel>
-    
+
     <panel>
       <title>Slowest Dashboards (7d Avg)</title>
       <table>
@@ -243,7 +243,7 @@
       </table>
     </panel>
   </row>
-  
+
   <!-- Top Dashboards -->
   <row>
     <panel>
@@ -262,7 +262,7 @@
         </format>
       </table>
     </panel>
-    
+
     <panel>
       <title>Top 10 Most Edited Dashboards</title>
       <table>

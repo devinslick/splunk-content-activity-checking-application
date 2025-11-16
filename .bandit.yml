@@ -1,0 +1,27 @@
+# Bandit security scanner configuration for Splunk app
+# Used by pre-commit hooks
+
+# Exclude test files and certain directories
+exclude_dirs:
+  - /tests/
+  - /test/
+  - /.git/
+  - /local/
+
+# Skipped tests (add test IDs to skip specific checks)
+skips:
+  # B404, B603, B607: subprocess security warnings (common in Splunk scripts)
+  # - B404
+  # - B603
+  # - B607
+
+# Tests to run (leave empty to run all except skipped)
+tests: []
+
+# Confidence level for reporting
+# Options: LOW, MEDIUM, HIGH
+confidence: MEDIUM
+
+# Severity level for reporting
+# Options: LOW, MEDIUM, HIGH
+severity: MEDIUM
