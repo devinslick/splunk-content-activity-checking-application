@@ -353,7 +353,21 @@ if (-not $Quick) {
             New-Item -ItemType Directory -Path $packageDir -Force | Out-Null
 
             # Copy files (exclude dev files)
-            $excludes = @('.git*', 'local', 'devnotes', '*.pyc', '__pycache__', '.DS_Store')
+            $excludes = @(
+                '.git*',
+                'local',
+                'devnotes',
+                '*.pyc',
+                '__pycache__',
+                '.DS_Store',
+                '.venv',
+                '.pytest_cache',
+                '.pre-commit-config.yaml',
+                '.bandit.yml',
+                'CI-CD-SETUP.md',
+                'scripts',
+                'appinspect_report.json'
+            )
 
             Get-ChildItem -Path $RepoRoot | Where-Object {
                 $item = $_

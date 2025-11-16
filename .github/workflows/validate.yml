@@ -217,8 +217,20 @@ jobs:
         mkdir -p "$PACKAGE_DIR"
 
         # Copy app files excluding development files
-        rsync -av --exclude='.git*' --exclude='local/' --exclude='devnotes/' \
-          --exclude='*.pyc' --exclude='__pycache__/' --exclude='.DS_Store' \
+        rsync -av \
+          --exclude='.git*' \
+          --exclude='local/' \
+          --exclude='devnotes/' \
+          --exclude='*.pyc' \
+          --exclude='__pycache__/' \
+          --exclude='.DS_Store' \
+          --exclude='.venv/' \
+          --exclude='.pytest_cache/' \
+          --exclude='.pre-commit-config.yaml' \
+          --exclude='.bandit.yml' \
+          --exclude='CI-CD-SETUP.md' \
+          --exclude='scripts/' \
+          --exclude='appinspect_report.json' \
           ./ "$PACKAGE_DIR/"
 
         # Run AppInspect
