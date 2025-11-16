@@ -212,6 +212,8 @@ Replace `YOUR_DASHBOARD_NAME` with your dashboard's pretty name from the registr
 
 CACA provides several search macros for easy querying. These macros help you quickly identify dashboards with issues, analyze performance, and understand usage patterns.
 
+**Note:** All macros respect the app filter configuration (see "Filtering Apps for Monitoring" in Configuration section). All results include the `app` field showing which app each dashboard belongs to, making it easy to filter or group results by application.
+
 #### Finding Dashboards with Issues
 
 ##### Identify dashboards with health issues (errors/warnings):
@@ -293,6 +295,20 @@ CACA provides several search macros for easy querying. These macros help you qui
 | where health_status="critical" OR (errors_7d > 50) OR (avg_load_time_7d > 10000)
 ```
 
+**Filter results by specific app:**
+```spl
+`get_dashboards_with_errors`
+| where app="search"
+| table pretty_name app errors warnings health_status
+```
+
+**List dashboards with errors across multiple apps:**
+```spl
+`get_dashboards_with_errors`
+| where app IN ("my_app1", "my_app2", "production_app")
+| sort -errors
+```
+
 **List dashboards with errors that are actively used:**
 ```spl
 `get_dashboards_with_errors`
@@ -339,9 +355,70 @@ Edit `default/indexes.conf` to adjust retention:
 frozenTimePeriodInSecs = 31536000  # 1 year (default)
 ```
 
-### Excluding Dashboards from Monitoring
+### Filtering Apps for Monitoring
 
-Edit `lookups/dashboard_registry.csv` and set `status=inactive` for dashboards you want to exclude from collection.
+CACA can be configured to only monitor dashboards from specific apps, or exclude certain apps from monitoring. This is useful when you only want to track dashboards in production apps, or exclude system/admin apps.
+
+#### Configuration Method
+
+Edit `lookups/app_filter.csv` to control which apps are monitored:
+
+**Include specific apps only:**
+```csv
+app,include
+search,true
+my_production_app,true
+another_app,true
+```
+
+**Exclude specific apps:**
+```csv
+app,include
+splunk_monitoring_console,false
+learned,false
+introspection_generator_addon,false
+```
+
+**How it works:**
+- If an app is **not listed** in app_filter.csv, it **will be monitored** (default behavior)
+- If an app is listed with `include=true` (or `1` or `yes`), it **will be monitored**
+- If an app is listed with `include=false` (or `0` or `no`), it **will NOT be monitored**
+- The filter applies to:
+  - Dashboard registry updates (which dashboards are discovered)
+  - All metrics collection (views, edits, errors, performance)
+  - All search macros and dashboard queries
+
+#### Examples
+
+**Monitor only specific production apps:**
+```csv
+app,include
+production_app1,true
+production_app2,true
+production_app3,true
+```
+Then add a wildcard exclusion entry to exclude everything else (optional):
+```csv
+app,include
+production_app1,true
+production_app2,true
+*,false
+```
+
+**Exclude system and admin apps:**
+```csv
+app,include
+splunk_monitoring_console,false
+learned,false
+introspection_generator_addon,false
+splunk_instrumentation,false
+```
+
+**Note:** After updating `app_filter.csv`, run the "Dashboard Registry - Auto Update" search to rebuild the dashboard registry with the new filter applied.
+
+### Excluding Individual Dashboards from Monitoring
+
+Edit `lookups/dashboard_registry.csv` and set `status=inactive` for specific dashboards you want to exclude from collection (this is independent of app filtering).
 
 ## Troubleshooting
 
