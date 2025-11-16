@@ -210,36 +210,112 @@ Replace `YOUR_DASHBOARD_NAME` with your dashboard's pretty name from the registr
 
 ### Using Search Macros
 
-CACA provides several search macros for easy querying:
+CACA provides several search macros for easy querying. These macros help you quickly identify dashboards with issues, analyze performance, and understand usage patterns.
 
-#### Get dashboard stats:
+#### Finding Dashboards with Issues
+
+##### Identify dashboards with health issues (errors/warnings):
 ```spl
-`get_dashboard_stats("My Dashboard Name")`
+`get_dashboards_with_errors`
 ```
+**Returns:** Dashboards with errors or warnings in the last 7 days, sorted by severity
+**Columns:** pretty_name, app, errors, warnings, total_issues, health_status
+**Use case:** Find dashboards that are generating errors and need attention
 
-#### Get all dashboards summary:
-```spl
-`get_all_dashboards_summary`
-```
-
-#### Get top dashboards by views:
-```spl
-`get_top_dashboards(views)`
-```
-
-#### Get dashboard performance:
-```spl
-`get_dashboard_performance("My Dashboard Name")`
-```
-
-#### Get slow dashboards:
+##### Identify slow-performing dashboards:
 ```spl
 `get_slow_dashboards`
 ```
+**Returns:** Dashboards with average load time > 3 seconds in the last 7 days
+**Columns:** pretty_name, app, avg_load_time_7d, performance_status
+**Use case:** Find dashboards that need performance optimization
 
-#### Get last viewed time:
+##### Identify all problematic dashboards (health OR performance issues):
+```spl
+`get_problematic_dashboards`
+```
+**Returns:** Dashboards with critical/warning health status OR slow performance
+**Columns:** pretty_name, app, views_7d, errors_7d, avg_load_time_7d, health_status, issue_type
+**Use case:** Get a comprehensive list of all dashboards needing attention
+
+**Example - Filter for critical issues only:**
+```spl
+`get_problematic_dashboards`
+| where health_status="critical" OR avg_load_time_7d > 10000
+```
+
+#### Dashboard Analytics
+
+##### Get comprehensive stats for a specific dashboard:
+```spl
+`get_dashboard_stats("My Dashboard Name")`
+```
+**Returns:** All metrics (views, edits, errors, load time) for the specified dashboard
+**Use case:** Deep dive into a specific dashboard's activity
+
+##### Get all dashboards summary:
+```spl
+`get_all_dashboards_summary`
+```
+**Returns:** Summary of all dashboards with 7-day metrics
+**Columns:** pretty_name, app, views_7d, edits_7d, errors_7d, avg_load_time_7d, health_status
+**Use case:** Get an overview of all dashboard health and activity
+
+##### Get top dashboards by metric type:
+```spl
+`get_top_dashboards(views)`
+`get_top_dashboards(edits)`
+```
+**Returns:** Top 10 dashboards by views or edits in the last 7 days
+**Use case:** Identify most-used or most-edited dashboards
+
+#### Performance Analysis
+
+##### Get performance rating for a specific dashboard:
+```spl
+`get_dashboard_performance("My Dashboard Name")`
+```
+**Returns:** Average load time and performance rating (Excellent/Good/Fair/Poor)
+**Use case:** Check if a dashboard meets performance standards
+
+##### Get last viewed time for a dashboard:
 ```spl
 `get_dashboard_last_viewed("My Dashboard Name")`
+```
+**Returns:** Last viewed timestamp and days since last view
+**Use case:** Identify stale or unused dashboards
+
+#### Common Use Cases
+
+**Find all dashboards needing immediate attention:**
+```spl
+`get_problematic_dashboards`
+| where health_status="critical" OR (errors_7d > 50) OR (avg_load_time_7d > 10000)
+```
+
+**List dashboards with errors that are actively used:**
+```spl
+`get_dashboards_with_errors`
+| where errors > 0 
+| join type=inner pretty_name [| mstats sum(_value) as views WHERE index=caca_metrics AND metric_name="dashboard.views" BY pretty_name span=1d | where _time >= relative_time(now(), "-7d") | stats sum(views) as views_7d by pretty_name | where views_7d > 10]
+| table pretty_name app errors warnings views_7d health_status
+```
+
+**Find slow dashboards with high usage:**
+```spl
+`get_slow_dashboards`
+| join type=inner pretty_name [| mstats sum(_value) as views WHERE index=caca_metrics AND metric_name="dashboard.views" BY pretty_name span=1d | where _time >= relative_time(now(), "-7d") | stats sum(views) as views_7d by pretty_name]
+| where views_7d > 50
+| table pretty_name app avg_load_time_7d performance_status views_7d
+| sort -views_7d
+```
+
+**Dashboard health report for a specific app:**
+```spl
+`get_all_dashboards_summary`
+| where app="search" 
+| table pretty_name views_7d edits_7d errors_7d avg_load_time_7d health_status
+| sort -errors_7d
 ```
 
 ## Configuration
