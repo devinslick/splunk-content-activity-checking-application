@@ -82,6 +82,16 @@
       <delimiter> OR </delimiter>
     </input>
     
+    <input type="dropdown" token="load_time_period">
+      <label>Load Time Analysis Period (affects Avg Total Load Time column)</label>
+      <choice value="-24h">Last 24 Hours</choice>
+      <choice value="-7d">Last 7 Days</choice>
+      <choice value="-30d">Last 30 Days</choice>
+      <choice value="-90d">Last 90 Days</choice>
+      <default>-7d</default>
+      <initialValue>-7d</initialValue>
+    </input>
+    
     <input type="time" token="time_range">
       <label>Metrics Time Range</label>
       <default>
@@ -254,10 +264,16 @@
     sharing=="app", "📦 App",
     sharing=="user", "🔒 Private",
     1=1, coalesce(sharing, "-"))
+| join type=left pretty_name 
+    [| mstats avg(_value) as avg_total_load_time WHERE index=caca_metrics AND metric_name="dashboard.load_time" BY pretty_name span=1h 
+    | where _time &gt;= relative_time(now(), "$load_time_period$") 
+    | stats avg(avg_total_load_time) as avg_total_load_time by pretty_name 
+    | eval avg_total_load_time=round(avg_total_load_time, 0)]
+| fillnull value=0 avg_total_load_time
 | eval dashboard_link=dashboard_uri
 | eval title_from_uri=mvindex(split(dashboard_uri, "/"), -1)
-| table pretty_name app owner sharing_display views_7d edits_7d errors_7d avg_load_time_7d perf_rating health_badge dashboard_link title_from_uri
-| rename pretty_name as "Dashboard Name", app as "App", owner as "Owner", sharing_display as "Sharing", views_7d as "Views (7d)", edits_7d as "Edits (7d)", errors_7d as "Errors (7d)", avg_load_time_7d as "Avg Load (ms)", perf_rating as "Performance", health_badge as "Health", dashboard_link as "Dashboard URI", title_from_uri as "Title"
+| table pretty_name app owner sharing_display views_7d edits_7d errors_7d avg_load_time_7d avg_total_load_time perf_rating health_badge dashboard_link title_from_uri
+| rename pretty_name as "Dashboard Name", app as "App", owner as "Owner", sharing_display as "Sharing", views_7d as "Views (7d)", edits_7d as "Edits (7d)", errors_7d as "Errors (7d)", avg_load_time_7d as "Avg Load (ms)", avg_total_load_time as "Avg Total Load Time (ms)", perf_rating as "Performance", health_badge as "Health", dashboard_link as "Dashboard URI", title_from_uri as "Title"
 | sort - "Views (7d)"</query>
           <earliest>$time_range.earliest$</earliest>
           <latest>$time_range.latest$</latest>
@@ -286,6 +302,9 @@
           <option name="precision">0</option>
         </format>
         <format type="number" field="Avg Load (ms)">
+          <option name="precision">0</option>
+        </format>
+        <format type="number" field="Avg Total Load Time (ms)">
           <option name="precision">0</option>
         </format>
         <drilldown>

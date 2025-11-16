@@ -28,15 +28,18 @@ Filter dashboards by multiple criteria simultaneously:
 - **Dashboard Name**: Wildcard search (e.g., "sales*" or "*report*")
 - **App**: Select one or more apps
 - **Owner**: Select one or more owners
+- **Sharing Level**: Global, App, or Private
 - **Health Status**: Healthy, Warning, Critical, or Stale
 - **Performance**: Fast (<1s), Good (1-3s), Slow (3-5s), or Very Slow (>5s)
-- **Time Range**: Configurable metrics window (default: 7 days)
+- **Load Time Analysis Period**: Select time range (24h, 7d, 30d, 90d) for analyzing average total dashboard load time
+- **Metrics Time Range**: Configurable metrics window for views, edits, and errors (default: 7 days)
 
 **Use Cases:**
 - Find all stale dashboards in the "search" app
 - Identify all dashboards owned by a departing team member
 - List all dashboards with critical health issues
 - Find slow-performing dashboards with high usage
+- Analyze load time trends over different time periods
 
 ### 2. Dashboard Management Table
 
@@ -45,12 +48,16 @@ The main table displays all dashboards matching your filters with:
 - **Dashboard Name** (clickable to open)
 - **App** - Which app contains the dashboard
 - **Owner** - Current owner
+- **Sharing** - Sharing level (🌐 Global, 📦 App, 🔒 Private)
 - **Views (7d)** - Number of views in the selected time range
 - **Edits (7d)** - Number of edits
 - **Errors (7d)** - Error count
-- **Avg Load (ms)** - Average load time
+- **Avg Load (ms)** - Average load time (from last 7 days)
+- **Avg Total Load Time (ms)** - Average total load time for the selected Load Time Analysis Period
 - **Performance** - Visual performance rating (⚡ Fast, ✓ Good, ⚠ Slow, ✗ Very Slow)
 - **Health** - Visual health status (✓ Healthy, ⚠ Warning, ✗ Critical, ☾ Stale)
+
+**Note:** The "Avg Total Load Time (ms)" column dynamically updates based on the "Load Time Analysis Period" dropdown selection (24h, 7d, 30d, or 90d), allowing you to analyze performance trends over different time ranges.
 
 **Interactions:**
 - Click any dashboard name to open it directly
@@ -136,13 +143,19 @@ Automated analysis that identifies dashboards requiring attention:
 3. Check "Views (7d)" to prioritize high-traffic dashboards
 4. Click dashboard name to open and investigate/optimize
 
-### Example 4: Find All Broken Dashboards in Production App
+### Example 4: Analyze Load Time Trends
+1. Select **Load Time Analysis Period** to "Last 24 Hours" for recent performance
+2. Review the **Avg Total Load Time (ms)** column to see current performance
+3. Change period to "Last 30 Days" to compare with longer-term trends
+4. Identify dashboards with increasing load times for proactive optimization
+
+### Example 5: Find All Broken Dashboards in Production App
 1. Set **App** filter to your production app name
 2. Set **Health Status** filter to "✗ Critical"
 3. Review error counts and view the recommendations
 4. Click each dashboard to view error details and fix
 
-### Example 5: Audit Dashboard Permissions
+### Example 6: Audit Dashboard Permissions
 1. Set **App** filter to specific app(s)
 2. Review the owner column
 3. Click each dashboard name to check permissions
