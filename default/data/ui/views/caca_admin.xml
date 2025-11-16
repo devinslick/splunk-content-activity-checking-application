@@ -43,6 +43,19 @@
       <delimiter> OR </delimiter>
     </input>
     
+    <input type="multiselect" token="sharing_filter">
+      <label>Filter by Sharing Level</label>
+      <choice value="*">All Sharing Levels</choice>
+      <choice value="global">🌐 Global</choice>
+      <choice value="app">📦 App</choice>
+      <choice value="user">🔒 Private</choice>
+      <default>*</default>
+      <initialValue>*</initialValue>
+      <valuePrefix>sharing="</valuePrefix>
+      <valueSuffix>"</valueSuffix>
+      <delimiter> OR </delimiter>
+    </input>
+    
     <input type="multiselect" token="health_filter">
       <label>Filter by Health Status</label>
       <choice value="*">All Status</choice>
@@ -85,8 +98,8 @@
       <single>
         <search>
           <query>`get_all_dashboards_summary`
-| lookup dashboard_registry pretty_name OUTPUT owner description dashboard_uri
-| search pretty_name="$name_filter$" $app_filter$ $owner_filter$ $health_filter$
+| lookup dashboard_registry pretty_name OUTPUT owner sharing description dashboard_uri
+| search pretty_name="$name_filter$" $app_filter$ $owner_filter$ $sharing_filter$ $health_filter$
 | eval perf_category=case(
     avg_load_time_7d == 0, "unknown",
     avg_load_time_7d &lt; 1000, "fast",
@@ -110,8 +123,8 @@
       <single>
         <search>
           <query>`get_all_dashboards_summary`
-| lookup dashboard_registry pretty_name OUTPUT owner description dashboard_uri
-| search pretty_name="$name_filter$" $app_filter$ $owner_filter$ $health_filter$
+| lookup dashboard_registry pretty_name OUTPUT owner sharing description dashboard_uri
+| search pretty_name="$name_filter$" $app_filter$ $owner_filter$ $sharing_filter$ $health_filter$
 | eval perf_category=case(
     avg_load_time_7d == 0, "unknown",
     avg_load_time_7d &lt; 1000, "fast",
@@ -136,8 +149,8 @@
       <single>
         <search>
           <query>`get_all_dashboards_summary`
-| lookup dashboard_registry pretty_name OUTPUT owner description dashboard_uri
-| search pretty_name="$name_filter$" $app_filter$ $owner_filter$ $health_filter$
+| lookup dashboard_registry pretty_name OUTPUT owner sharing description dashboard_uri
+| search pretty_name="$name_filter$" $app_filter$ $owner_filter$ $sharing_filter$ $health_filter$
 | eval perf_category=case(
     avg_load_time_7d == 0, "unknown",
     avg_load_time_7d &lt; 1000, "fast",
@@ -163,8 +176,8 @@
       <single>
         <search>
           <query>`get_all_dashboards_summary`
-| lookup dashboard_registry pretty_name OUTPUT owner description dashboard_uri
-| search pretty_name="$name_filter$" $app_filter$ $owner_filter$ $health_filter$
+| lookup dashboard_registry pretty_name OUTPUT owner sharing description dashboard_uri
+| search pretty_name="$name_filter$" $app_filter$ $owner_filter$ $sharing_filter$ $health_filter$
 | eval perf_category=case(
     avg_load_time_7d == 0, "unknown",
     avg_load_time_7d &lt; 1000, "fast",
@@ -214,8 +227,8 @@
       <table>
         <search>
           <query>`get_all_dashboards_summary`
-| lookup dashboard_registry pretty_name OUTPUT owner description dashboard_uri
-| search pretty_name="$name_filter$" $app_filter$ $owner_filter$ $health_filter$
+| lookup dashboard_registry pretty_name OUTPUT owner sharing description dashboard_uri
+| search pretty_name="$name_filter$" $app_filter$ $owner_filter$ $sharing_filter$ $health_filter$
 | eval perf_category=case(
     avg_load_time_7d == 0, "unknown",
     avg_load_time_7d &lt; 1000, "fast",
@@ -236,10 +249,15 @@
     health_status=="critical", "✗ Critical",
     health_status=="stale", "☾ Stale",
     1=1, health_status)
+| eval sharing_display=case(
+    sharing=="global", "🌐 Global",
+    sharing=="app", "📦 App",
+    sharing=="user", "🔒 Private",
+    1=1, coalesce(sharing, "-"))
 | eval dashboard_link=dashboard_uri
 | eval title_from_uri=mvindex(split(dashboard_uri, "/"), -1)
-| table pretty_name app owner views_7d edits_7d errors_7d avg_load_time_7d perf_rating health_badge dashboard_link title_from_uri
-| rename pretty_name as "Dashboard Name", app as "App", owner as "Owner", views_7d as "Views (7d)", edits_7d as "Edits (7d)", errors_7d as "Errors (7d)", avg_load_time_7d as "Avg Load (ms)", perf_rating as "Performance", health_badge as "Health", dashboard_link as "Dashboard URI", title_from_uri as "Title"
+| table pretty_name app owner sharing_display views_7d edits_7d errors_7d avg_load_time_7d perf_rating health_badge dashboard_link title_from_uri
+| rename pretty_name as "Dashboard Name", app as "App", owner as "Owner", sharing_display as "Sharing", views_7d as "Views (7d)", edits_7d as "Edits (7d)", errors_7d as "Errors (7d)", avg_load_time_7d as "Avg Load (ms)", perf_rating as "Performance", health_badge as "Health", dashboard_link as "Dashboard URI", title_from_uri as "Title"
 | sort - "Views (7d)"</query>
           <earliest>$time_range.earliest$</earliest>
           <latest>$time_range.latest$</latest>
@@ -254,6 +272,9 @@
         </format>
         <format type="color" field="Performance">
           <colorPalette type="map">{"⚡ Fast":#53A051,"✓ Good":#0877a6,"⚠ Slow":#F8BE34,"✗ Very Slow":#DC4E41,"-":#708794}</colorPalette>
+        </format>
+        <format type="color" field="Sharing">
+          <colorPalette type="map">{"🌐 Global":#0877a6,"📦 App":#53A051,"🔒 Private":#F8BE34,"-":#708794}</colorPalette>
         </format>
         <format type="number" field="Views (7d)">
           <option name="precision">0</option>
@@ -353,7 +374,7 @@
       <table>
         <search>
           <query>`get_all_dashboards_summary`
-| lookup dashboard_registry pretty_name OUTPUT owner description dashboard_uri
+| lookup dashboard_registry pretty_name OUTPUT owner sharing description dashboard_uri
 | eval avg_load_time_7d=round(avg_load_time_7d, 0)
 | eval recommendation=case(
     health_status=="critical" AND avg_load_time_7d &gt; 5000, "URGENT: Fix errors AND optimize performance",

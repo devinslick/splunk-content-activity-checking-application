@@ -116,19 +116,22 @@ The `caca_metrics` index should be created automatically. Verify by running:
 Run the registry update search to populate the dashboard registry:
 
 ```spl
-| rest /services/data/ui/views splunk_server=local count=0 
+| rest /services/data/ui/views splunk_server=local count=0 search="sharing=*"
 | search isDashboard=1 OR isVisible=1 
 | eval dashboard_uri="/app/".eai:acl.app."/".title 
 | eval pretty_name=coalesce(label, title) 
 | eval app=eai:acl.app 
 | eval owner=eai:acl.owner 
+| eval sharing=eai:acl.sharing
 | eval description=coalesce(eai:data, "") 
 | eval status="active" 
-| table dashboard_uri pretty_name app owner description status 
+| table dashboard_uri pretty_name app owner sharing description status 
 | outputlookup dashboard_registry.csv
 ```
 
-This will scan your Splunk environment and populate the `dashboard_registry.csv` lookup with all discovered dashboards.
+This will scan your Splunk environment and populate the `dashboard_registry.csv` lookup with all discovered dashboards, including private dashboards.
+
+**Note on Private Dashboards:** The `search="sharing=*"` parameter ensures that dashboards with all sharing levels (global, app, and user/private) are included in the registry. To see private dashboards owned by other users, the scheduled search must run with appropriate permissions (typically as admin or with the `list_storage_passwords` capability).
 
 **Verify the registry:**
 
@@ -455,16 +458,19 @@ Edit `lookups/dashboard_registry.csv` and set `status=inactive` for specific das
 
 Run the registry update search manually:
 ```spl
-| rest /services/data/ui/views splunk_server=local count=0 
+| rest /services/data/ui/views splunk_server=local count=0 search="sharing=*"
 | search isDashboard=1 OR isVisible=1 
 | eval dashboard_uri="/app/".eai:acl.app."/".title 
 | eval pretty_name=coalesce(label, title) 
 | eval app=eai:acl.app 
 | eval owner=eai:acl.owner 
+| eval sharing=eai:acl.sharing
 | eval status="active" 
-| table dashboard_uri pretty_name app owner status 
+| table dashboard_uri pretty_name app owner sharing status 
 | outputlookup dashboard_registry.csv
 ```
+
+**For Private Dashboards:** If private dashboards still don't appear, ensure the search is running with appropriate permissions. Private dashboards owned by other users require admin privileges or specific capabilities to be discovered via REST API.
 
 Or add it manually to `lookups/dashboard_registry.csv`.
 

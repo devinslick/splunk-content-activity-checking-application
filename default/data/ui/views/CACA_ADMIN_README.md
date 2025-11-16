@@ -185,11 +185,18 @@ To use the CACA Admin Dashboard effectively, you need:
 - Verify the dashboard registry is populated: `| inputlookup dashboard_registry`
 - Check that metrics are being collected: `| mstats count WHERE index=caca_metrics`
 - Ensure filters aren't too restrictive (try resetting to defaults)
+- **For private dashboards**: Ensure the "Dashboard Registry - Auto Update" scheduled search runs with appropriate permissions to discover private dashboards owned by other users
 
 ### Filters Not Working
 - Click the "Submit" button after changing filters
 - Check for typos in the name filter (use wildcards: *)
 - Verify app/owner names match exactly what's in the registry
+
+### Private Dashboards Not Appearing
+- Private dashboards require the registry update search to run with admin privileges
+- Verify the search includes `search="sharing=*"` parameter in the REST call
+- Check if the user running the scheduled search has permissions to view other users' private content
+- Manually verify private dashboard exists: `| rest /services/data/ui/views search="sharing=*" | search owner="username" sharing="user"`
 
 ### Links Not Working
 - Ensure you have appropriate permissions to access management pages
@@ -204,6 +211,13 @@ To use the CACA Admin Dashboard effectively, you need:
 - `dashboard_registry.csv` lookup
 - `caca_metrics` index
 - Search macro: `get_all_dashboards_summary`
+
+**Private Dashboard Support**:
+- The dashboard registry includes dashboards with all sharing levels: global, app, and user/private
+- The registry update search uses `search="sharing=*"` parameter to discover private dashboards
+- Viewing private dashboards owned by other users requires appropriate permissions
+- The scheduled search should run with admin privileges to capture all private dashboards across users
+- The `sharing` field in the registry indicates the sharing level of each dashboard
 
 **Performance Considerations**:
 - Initial load may take a few seconds if you have many dashboards
