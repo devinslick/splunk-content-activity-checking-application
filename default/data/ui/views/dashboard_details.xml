@@ -143,8 +143,8 @@
       <title>Load Time Trend Over Time</title>
       <chart>
         <search>
-          <query>| mstats avg(avg_load_time) as avg_load, max(max_load_time) as max_load WHERE index=caca_metrics AND pretty_name="$dashboard_name$" AND metric_name="dashboard.load_time" span=1h 
-| timechart avg(avg_load) as "Avg Load Time (ms)" max(max_load) as "Max Load Time (ms)" span=1h</query>
+          <query>| mstats avg(_value) as avg_load WHERE index=caca_metrics AND pretty_name="$dashboard_name$" AND metric_name="dashboard.load_time" span=1h 
+| timechart avg(avg_load) as "Avg Load Time (ms)" span=1h</query>
           <earliest>$time_range.earliest$</earliest>
           <latest>$time_range.latest$</latest>
         </search>
@@ -152,7 +152,7 @@
         <option name="charting.axisTitleX.text">Date</option>
         <option name="charting.axisTitleY.text">Load Time (ms)</option>
         <option name="charting.legend.placement">bottom</option>
-        <option name="charting.seriesColors">[0xF8BE34,0xDC4E41]</option>
+        <option name="charting.seriesColors">[0xF8BE34]</option>
         <option name="charting.drilldown">none</option>
       </chart>
     </panel>

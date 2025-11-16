@@ -285,12 +285,11 @@
       <title>🐌 The Slow - Dashboards with Performance Issues (Last 7 Days)</title>
       <table>
         <search>
-          <query>| mstats avg(avg_load_time) as avg_load, max(max_load_time) as max_load WHERE index=caca_metrics AND metric_name="dashboard.load_time" BY pretty_name, app span=1d 
+          <query>| mstats avg(_value) as avg_load WHERE index=caca_metrics AND metric_name="dashboard.load_time" BY pretty_name, app span=1d 
 | where _time >= relative_time(now(), "-7d")
-| stats avg(avg_load) as avg_load_time, max(max_load) as max_load_time by pretty_name, app
+| stats avg(avg_load) as avg_load_time by pretty_name, app
 | where avg_load_time &gt; 3000
 | eval avg_load_time=round(avg_load_time, 0)
-| eval max_load_time=round(max_load_time, 0)
 | lookup dashboard_registry pretty_name OUTPUT owner description
 | join type=left pretty_name 
     [| mstats sum(_value) as views WHERE index=caca_metrics AND metric_name="dashboard.views" BY pretty_name span=1d
@@ -312,8 +311,8 @@
     avg_load_time &gt; 7000, "High priority optimization",
     avg_load_time &gt; 5000, "Should optimize",
     1=1, "Consider optimization")
-| table pretty_name app avg_load_time max_load_time views_7d performance_level user_impact recommendation owner description
-| rename pretty_name as "Dashboard", app as "App", avg_load_time as "Avg Load (ms)", max_load_time as "Max Load (ms)", views_7d as "Views (7d)", performance_level as "Performance", user_impact as "Impact", recommendation as "Recommendation", owner as "Owner", description as "Description"
+| table pretty_name app avg_load_time views_7d performance_level user_impact recommendation owner description
+| rename pretty_name as "Dashboard", app as "App", avg_load_time as "Avg Load (ms)", views_7d as "Views (7d)", performance_level as "Performance", user_impact as "Impact", recommendation as "Recommendation", owner as "Owner", description as "Description"
 | sort -"Avg Load (ms)"</query>
           <earliest>-7d@d</earliest>
           <latest>now</latest>
@@ -324,12 +323,6 @@
           <colorPalette type="map">{"🔥 Critical":#DC4E41,"❌ Very Slow":#F1813F,"⚠️ Slow":#F8BE34,"😐 Sluggish":#0877a6}</colorPalette>
         </format>
         <format type="number" field="Avg Load (ms)">
-          <option name="precision">0</option>
-        </format>
-        <format type="number" field="Max Load (ms)">
-          <option name="precision">0</option>
-        </format>
-        <format type="number" field="Views (7d)">
           <option name="precision">0</option>
         </format>
         <format type="number" field="Views (7d)">

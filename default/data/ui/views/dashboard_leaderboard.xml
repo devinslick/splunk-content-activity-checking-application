@@ -225,7 +225,7 @@
         <search>
           <query>`get_slow_dashboards`
 | head 10
-| rename pretty_name as "Dashboard", app as "App", avg_load_time_7d as "Avg Load (ms)", max_load_time_7d as "Max Load (ms)", performance_status as "Status"</query>
+| rename pretty_name as "Dashboard", app as "App", avg_load_time_7d as "Avg Load (ms)", performance_status as "Status"</query>
           <earliest>-7d@h</earliest>
           <latest>now</latest>
         </search>
@@ -235,9 +235,6 @@
           <colorPalette type="map">{"Critical":#DC4E41,"Poor":#F1813F,"Fair":#F8BE34,"Good":#53A051}</colorPalette>
         </format>
         <format type="number" field="Avg Load (ms)">
-          <option name="precision">0</option>
-        </format>
-        <format type="number" field="Max Load (ms)">
           <option name="precision">0</option>
         </format>
         <drilldown>
