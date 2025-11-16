@@ -15,6 +15,7 @@ repos:
         name: Fix end of files
       - id: check-yaml
         name: Check YAML syntax
+        exclude: '(local/.*-environment\.yaml|local/.*\.yaml)$'  # Exclude K8s multi-document YAML files
       - id: check-json
         name: Check JSON syntax
         files: '\.(json|manifest)$'
