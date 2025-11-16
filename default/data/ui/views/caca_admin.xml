@@ -265,7 +265,7 @@
     sharing=="user", "🔒 Private",
     1=1, coalesce(sharing, "-"))
 | join type=left pretty_name
-    [| mstats avg(_value) as avg_total_load_time WHERE index=caca_metrics AND metric_name="dashboard.load_time" BY pretty_name span=1h
+    [search `comment("Get load time metrics if they exist")` | mstats avg(_value) as avg_total_load_time WHERE index=caca_metrics metric_name="dashboard.load_time" BY pretty_name span=1h
     | where _time &gt;= relative_time(now(), "$load_time_period$")
     | stats avg(avg_total_load_time) as avg_total_load_time by pretty_name
     | eval avg_total_load_time=round(avg_total_load_time, 0)]
@@ -326,13 +326,13 @@
       <html>
         <div style="padding: 20px;">
           <div style="display: flex; flex-wrap: wrap; gap: 15px; justify-content: center;">
-            <a href="/en-US/manager/system/admin/views" target="_blank" class="btn btn-primary" style="min-width: 200px; text-align: center; padding: 12px 20px;">
+            <a href="/manager/search/data/ui/views" target="_blank" class="btn btn-primary" style="min-width: 200px; text-align: center; padding: 12px 20px;">
               📋 Manage All Dashboards
             </a>
-            <a href="/en-US/manager/system/admin/views?action=new" target="_blank" class="btn btn-primary" style="min-width: 200px; text-align: center; padding: 12px 20px;">
+            <a href="/manager/caca/data/ui/views/_new" target="_blank" class="btn btn-primary" style="min-width: 200px; text-align: center; padding: 12px 20px;">
               ➕ Create New Dashboard
             </a>
-            <a href="/en-US/manager/system/data/inputs/all" target="_blank" class="btn btn-secondary" style="min-width: 200px; text-align: center; padding: 12px 20px;">
+            <a href="/manager/caca/apps/local" target="_blank" class="btn btn-secondary" style="min-width: 200px; text-align: center; padding: 12px 20px;">
               ⚙️ Settings
             </a>
             <a href="/en-US/app/splunk-content-monitoring-console/search" target="_blank" class="btn btn-secondary" style="min-width: 200px; text-align: center; padding: 12px 20px;">
