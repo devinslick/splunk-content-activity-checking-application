@@ -1,0 +1,207 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: splunk
+  labels:
+    app: splunk
+  namespace: splunk-operator
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: splunk
+  template:
+    metadata:
+      labels:
+        app: splunk
+    spec:
+      hostname: splunk
+      initContainers:
+        - name: download-caca-app
+          image: alpine/git:latest
+          securityContext:
+            runAsUser: 0  # Run as root to ensure write permissions
+          env:
+            # Change this to use a different branch (e.g., dev, feature/my-feature)
+            - name: CACA_BRANCH
+              value: "main"
+          command:
+            - sh
+            - -c
+            - |
+              set -e  # Exit on any error
+
+              echo "=== CACA App Installation Starting ==="
+              echo "Branch: ${CACA_BRANCH}"
+              echo "Target: /opt/splunk/etc/apps/caca"
+
+              echo "Checking volume mount..."
+              ls -la /opt/splunk/etc/ || echo "WARNING: /opt/splunk/etc/ not accessible"
+
+              echo "Creating apps directory if needed..."
+              mkdir -p /opt/splunk/etc/apps
+
+              echo "Removing old CACA app installation (if exists)..."
+              rm -rf /opt/splunk/etc/apps/caca-content-activity-checking-application
+              rm -rf /opt/splunk/etc/apps/caca
+
+              echo "Downloading CACA app from GitHub (branch: ${CACA_BRANCH})..."
+              cd /tmp
+              git clone --depth 1 --branch ${CACA_BRANCH} https://github.com/devinslick/splunk-content-monitoring-console.git
+
+              echo "Creating app directory..."
+              mkdir -p /opt/splunk/etc/apps/caca
+
+              echo "Copying app files (excluding dev files)..."
+              cd splunk-content-monitoring-console
+
+              # Copy all files except dev-specific ones
+              find . -maxdepth 1 -mindepth 1 \
+                ! -name '.git*' \
+                ! -name 'local' \
+                ! -name 'devnotes' \
+                ! -name '.venv' \
+                ! -name '.pytest_cache' \
+                ! -name '.pre-commit-config.yaml' \
+                ! -name '.bandit.yml' \
+                ! -name 'CI-CD-SETUP.md' \
+                ! -name 'scripts' \
+                ! -name 'appinspect_report.json' \
+                ! -name '*.pyc' \
+                ! -name '__pycache__' \
+                -exec cp -r {} /opt/splunk/etc/apps/caca/ \;
+
+              echo "Setting permissions for Splunk user (41812)..."
+              chown -R 41812:41812 /opt/splunk/etc/apps/caca
+
+              echo "=== CACA App Installation Complete ==="
+              echo "Installed files:"
+              ls -la /opt/splunk/etc/apps/caca/
+
+              echo "SUCCESS: CACA app installed from branch: ${CACA_BRANCH}"
+          volumeMounts:
+            - mountPath: /opt/splunk/etc/apps
+              name: splunk
+              subPath: var/splunk-apps  # Use a dedicated path in the PVC
+      containers:
+        - name: splunk
+          image: splunk/splunk:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8000
+              name: http
+              protocol: TCP
+            - containerPort: 8088
+              name: hec
+              protocol: TCP
+            - containerPort: 9997
+              name: indexer
+              protocol: TCP
+          volumeMounts:
+          - mountPath: /opt/splunk/var
+            name: splunk
+            subPath: var
+          - mountPath: /opt/splunk/etc/apps
+            name: splunk
+            subPath: var/splunk-apps  # Share same PVC, different subPath
+          env:
+            - name: TZ
+              value: 'America/Chicago'
+            - name: SPLUNK_GENERAL_TERMS
+              value: '--accept-sgt-current-at-splunk-com'
+            - name: SPLUNK_START_ARGS
+              value: '--accept-license --no-prompt --answer-yes'
+            - name: SPLUNK_HTTP_PORT
+              value: "8000"
+            - name: SPLUNK_HEC_PORT
+              value: "8088"
+            - name: SPLUNK_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  # Name of the secret you created: splunk-splunk-operator-secret
+                  name: splunk-splunk-operator-secret
+                  # Name of the key inside the secret that holds the password
+                  key: password
+            # ⬆️ END OF SECRET REFERENCE
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8000
+            initialDelaySeconds: 60
+            periodSeconds: 30
+      volumes:
+      - name: splunk
+        persistentVolumeClaim:
+          claimName: splunk
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: splunk-http
+  namespace: splunk-operator
+  labels:
+    app: splunk
+spec:
+  ports:
+  - name: http
+    port: 8000
+  type: ClusterIP
+  selector:
+    app: splunk
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: splunk-hec
+  namespace: splunk-operator
+  labels:
+    app: splunk
+spec:
+  ports:
+  - name: hec
+    port: 8088
+  type: ClusterIP
+  selector:
+    app: splunk
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: splunk-indexer
+  namespace: splunk-operator
+  labels:
+    app: splunk
+spec:
+  ports:
+  - name: indexer
+    port: 9997
+  type: ClusterIP
+  selector:
+    app: splunk
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: splunk
+  namespace: splunk-caca
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - splunk.devinslick.com
+  rules:
+  - host: splunk.devinslick.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: splunk-http
+            port:
+              number: 8000
