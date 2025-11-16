@@ -169,6 +169,18 @@ Navigate to **CACA → Dashboard Leaderboard** to view:
 - **Trending Charts**: Views, errors, and load time trends over time
 - **Top Dashboards**: Most viewed, most edited, and slowest dashboards
 
+### CACA Admin Dashboard
+
+Navigate to **CACA → CACA Admin Dashboard** for centralized dashboard administration:
+
+- **Multi-Dimensional Filtering**: Filter dashboards by name, app, owner, health status, and performance
+- **Management View**: Sortable table with all key metrics (views, errors, load time, health)
+- **Quick Actions**: Direct links to edit, change ownership, move between apps, delete, and manage permissions
+- **Bulk Recommendations**: Prioritized list of dashboards needing attention (fix, optimize, archive)
+- **Workflow Guides**: Step-by-step instructions for common administrative tasks
+
+See the [CACA Admin Dashboard README](default/data/ui/views/CACA_ADMIN_README.md) for detailed usage instructions and examples.
+
 ### Dashboard Details
 
 Click any dashboard in the leaderboard to view detailed metrics:
