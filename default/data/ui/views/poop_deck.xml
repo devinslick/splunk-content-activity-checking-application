@@ -86,7 +86,7 @@
       <title>🐌 Slow Dashboards</title>
       <single>
         <search>
-          <query>| mstats avg(avg_load_time) as avg_load WHERE index=caca_metrics AND metric_name="dashboard.load_time" BY pretty_name span=1d
+          <query>| mstats avg(_value) as avg_load WHERE index=caca_metrics AND metric_name="dashboard.load_time" BY pretty_name span=1d
 | where _time >= relative_time(now(), "-7d")
 | stats avg(avg_load) as avg_load_time by pretty_name
 | where avg_load_time &gt; 5000

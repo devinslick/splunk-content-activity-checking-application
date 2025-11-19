@@ -70,7 +70,7 @@
       <title>Avg Load Time (7d)</title>
       <single>
         <search>
-          <query>| mstats avg(avg_load_time) as overall_avg WHERE index=caca_metrics AND metric_name="dashboard.load_time" span=1d
+          <query>| mstats avg(_value) as overall_avg WHERE index=caca_metrics AND metric_name="dashboard.load_time" span=1d
 | stats avg(overall_avg) as avg_load_time
 | eval avg_load_time=round(avg_load_time, 0)." ms"</query>
           <earliest>-7d@h</earliest>

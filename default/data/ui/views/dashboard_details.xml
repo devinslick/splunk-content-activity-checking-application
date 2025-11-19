@@ -89,7 +89,7 @@
       <title>Avg Load Time</title>
       <single>
         <search>
-          <query>| mstats avg(avg_load_time) as avg_load WHERE index=caca_metrics AND pretty_name="$dashboard_name$" AND metric_name="dashboard.load_time" span=1d
+          <query>| mstats avg(_value) as avg_load WHERE index=caca_metrics AND pretty_name="$dashboard_name$" AND metric_name="dashboard.load_time" span=1d
 | stats avg(avg_load) as avg_load_time
 | eval display=round(avg_load_time, 0)." ms"
 | table display</query>
