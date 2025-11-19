@@ -341,7 +341,7 @@
       <title>😴 The Neglected - Low Engagement Dashboards (Active but Underused)</title>
       <table>
         <search>
-          <query>| mstats sum(_value) as metric_value WHERE index=caca_metrics BY pretty_name, metric_name, app span=1d
+          <query>| mstats sum(_value) as metric_value WHERE index=caca_metrics AND metric_name="dashboard.*" BY pretty_name, metric_name, app span=1d
 | where _time >= relative_time(now(), "-30d")
 | stats sum(metric_value) as total by pretty_name, metric_name, app
 | eval metric_type=case(

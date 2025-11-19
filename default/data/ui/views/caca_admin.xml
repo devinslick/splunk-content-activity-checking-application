@@ -107,7 +107,23 @@
       <title>Filtered Dashboard Count</title>
       <single>
         <search>
-          <query>`get_all_dashboards_summary`
+          <query>| mstats sum(_value) as metric_value WHERE index=caca_metrics AND metric_name="dashboard.*" BY pretty_name, metric_name, app span=1d
+| where _time >= relative_time(now(), "-7d")
+| stats sum(metric_value) as total_value by pretty_name, metric_name, app
+| eval metric_type=case(
+    metric_name=="dashboard.views", "views_7d",
+    metric_name=="dashboard.edits", "edits_7d",
+    metric_name=="dashboard.errors", "errors_7d",
+    metric_name=="dashboard.load_time", "load_time_7d",
+    1=1, "other")
+| eval {metric_type}=total_value
+| stats values(app) as app sum(views_7d) as views_7d sum(edits_7d) as edits_7d sum(errors_7d) as errors_7d avg(load_time_7d) as avg_load_time_7d by pretty_name
+| fillnull value=0 views_7d edits_7d errors_7d avg_load_time_7d
+| eval health_status=case(
+    errors_7d > 10, "critical",
+    errors_7d > 0, "warning",
+    views_7d == 0, "stale",
+    1=1, "healthy")
 | lookup dashboard_registry pretty_name OUTPUT owner sharing description dashboard_uri
 | search pretty_name="$name_filter$" $app_filter$ $owner_filter$ $sharing_filter$ $health_filter$
 | eval perf_category=case(
@@ -132,7 +148,23 @@
       <title>Total Views (Filtered)</title>
       <single>
         <search>
-          <query>`get_all_dashboards_summary`
+          <query>| mstats sum(_value) as metric_value WHERE index=caca_metrics AND metric_name="dashboard.*" BY pretty_name, metric_name, app span=1d
+| where _time >= relative_time(now(), "-7d")
+| stats sum(metric_value) as total_value by pretty_name, metric_name, app
+| eval metric_type=case(
+    metric_name=="dashboard.views", "views_7d",
+    metric_name=="dashboard.edits", "edits_7d",
+    metric_name=="dashboard.errors", "errors_7d",
+    metric_name=="dashboard.load_time", "load_time_7d",
+    1=1, "other")
+| eval {metric_type}=total_value
+| stats values(app) as app sum(views_7d) as views_7d sum(edits_7d) as edits_7d sum(errors_7d) as errors_7d avg(load_time_7d) as avg_load_time_7d by pretty_name
+| fillnull value=0 views_7d edits_7d errors_7d avg_load_time_7d
+| eval health_status=case(
+    errors_7d > 10, "critical",
+    errors_7d > 0, "warning",
+    views_7d == 0, "stale",
+    1=1, "healthy")
 | lookup dashboard_registry pretty_name OUTPUT owner sharing description dashboard_uri
 | search pretty_name="$name_filter$" $app_filter$ $owner_filter$ $sharing_filter$ $health_filter$
 | eval perf_category=case(
@@ -158,7 +190,23 @@
       <title>Health Issues</title>
       <single>
         <search>
-          <query>`get_all_dashboards_summary`
+          <query>| mstats sum(_value) as metric_value WHERE index=caca_metrics AND metric_name="dashboard.*" BY pretty_name, metric_name, app span=1d
+| where _time >= relative_time(now(), "-7d")
+| stats sum(metric_value) as total_value by pretty_name, metric_name, app
+| eval metric_type=case(
+    metric_name=="dashboard.views", "views_7d",
+    metric_name=="dashboard.edits", "edits_7d",
+    metric_name=="dashboard.errors", "errors_7d",
+    metric_name=="dashboard.load_time", "load_time_7d",
+    1=1, "other")
+| eval {metric_type}=total_value
+| stats values(app) as app sum(views_7d) as views_7d sum(edits_7d) as edits_7d sum(errors_7d) as errors_7d avg(load_time_7d) as avg_load_time_7d by pretty_name
+| fillnull value=0 views_7d edits_7d errors_7d avg_load_time_7d
+| eval health_status=case(
+    errors_7d > 10, "critical",
+    errors_7d > 0, "warning",
+    views_7d == 0, "stale",
+    1=1, "healthy")
 | lookup dashboard_registry pretty_name OUTPUT owner sharing description dashboard_uri
 | search pretty_name="$name_filter$" $app_filter$ $owner_filter$ $sharing_filter$ $health_filter$
 | eval perf_category=case(
@@ -185,7 +233,23 @@
       <title>Performance Issues</title>
       <single>
         <search>
-          <query>`get_all_dashboards_summary`
+          <query>| mstats sum(_value) as metric_value WHERE index=caca_metrics AND metric_name="dashboard.*" BY pretty_name, metric_name, app span=1d
+| where _time >= relative_time(now(), "-7d")
+| stats sum(metric_value) as total_value by pretty_name, metric_name, app
+| eval metric_type=case(
+    metric_name=="dashboard.views", "views_7d",
+    metric_name=="dashboard.edits", "edits_7d",
+    metric_name=="dashboard.errors", "errors_7d",
+    metric_name=="dashboard.load_time", "load_time_7d",
+    1=1, "other")
+| eval {metric_type}=total_value
+| stats values(app) as app sum(views_7d) as views_7d sum(edits_7d) as edits_7d sum(errors_7d) as errors_7d avg(load_time_7d) as avg_load_time_7d by pretty_name
+| fillnull value=0 views_7d edits_7d errors_7d avg_load_time_7d
+| eval health_status=case(
+    errors_7d > 10, "critical",
+    errors_7d > 0, "warning",
+    views_7d == 0, "stale",
+    1=1, "healthy")
 | lookup dashboard_registry pretty_name OUTPUT owner sharing description dashboard_uri
 | search pretty_name="$name_filter$" $app_filter$ $owner_filter$ $sharing_filter$ $health_filter$
 | eval perf_category=case(
@@ -236,7 +300,23 @@
       <title>Dashboard Management List</title>
       <table>
         <search>
-          <query>`get_all_dashboards_summary`
+          <query>| mstats sum(_value) as metric_value WHERE index=caca_metrics AND metric_name="dashboard.*" BY pretty_name, metric_name, app span=1d
+| where _time >= relative_time(now(), "-7d")
+| stats sum(metric_value) as total_value by pretty_name, metric_name, app
+| eval metric_type=case(
+    metric_name=="dashboard.views", "views_7d",
+    metric_name=="dashboard.edits", "edits_7d",
+    metric_name=="dashboard.errors", "errors_7d",
+    metric_name=="dashboard.load_time", "load_time_7d",
+    1=1, "other")
+| eval {metric_type}=total_value
+| stats values(app) as app sum(views_7d) as views_7d sum(edits_7d) as edits_7d sum(errors_7d) as errors_7d avg(load_time_7d) as avg_load_time_7d by pretty_name
+| fillnull value=0 views_7d edits_7d errors_7d avg_load_time_7d
+| eval health_status=case(
+    errors_7d > 10, "critical",
+    errors_7d > 0, "warning",
+    views_7d == 0, "stale",
+    1=1, "healthy")
 | lookup dashboard_registry pretty_name OUTPUT owner sharing description dashboard_uri
 | search pretty_name="$name_filter$" $app_filter$ $owner_filter$ $sharing_filter$ $health_filter$
 | eval perf_category=case(
@@ -265,7 +345,7 @@
     sharing=="user", "🔒 Private",
     1=1, coalesce(sharing, "-"))
 | join type=left pretty_name
-    [search `comment("Get load time metrics if they exist")` | mstats avg(_value) as avg_total_load_time WHERE index=caca_metrics metric_name="dashboard.load_time" BY pretty_name span=1h
+    [| mstats avg(_value) as avg_total_load_time WHERE index=caca_metrics AND metric_name="dashboard.load_time" BY pretty_name span=1h
     | where _time &gt;= relative_time(now(), "$load_time_period$")
     | stats avg(avg_total_load_time) as avg_total_load_time by pretty_name
     | eval avg_total_load_time=round(avg_total_load_time, 0)]
@@ -392,7 +472,23 @@
       <title>🎯 Recommended Bulk Actions Based on Current Data</title>
       <table>
         <search>
-          <query>`get_all_dashboards_summary`
+          <query>| mstats sum(_value) as metric_value WHERE index=caca_metrics AND metric_name="dashboard.*" BY pretty_name, metric_name, app span=1d
+| where _time >= relative_time(now(), "-7d")
+| stats sum(metric_value) as total_value by pretty_name, metric_name, app
+| eval metric_type=case(
+    metric_name=="dashboard.views", "views_7d",
+    metric_name=="dashboard.edits", "edits_7d",
+    metric_name=="dashboard.errors", "errors_7d",
+    metric_name=="dashboard.load_time", "load_time_7d",
+    1=1, "other")
+| eval {metric_type}=total_value
+| stats values(app) as app sum(views_7d) as views_7d sum(edits_7d) as edits_7d sum(errors_7d) as errors_7d avg(load_time_7d) as avg_load_time_7d by pretty_name
+| fillnull value=0 views_7d edits_7d errors_7d avg_load_time_7d
+| eval health_status=case(
+    errors_7d > 10, "critical",
+    errors_7d > 0, "warning",
+    views_7d == 0, "stale",
+    1=1, "healthy")
 | lookup dashboard_registry pretty_name OUTPUT owner sharing description dashboard_uri
 | eval avg_load_time_7d=round(avg_load_time_7d, 0)
 | eval recommendation=case(
