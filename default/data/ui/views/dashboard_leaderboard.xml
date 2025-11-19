@@ -110,7 +110,23 @@
       <title>Dashboard Activity Leaderboard</title>
       <table>
         <search>
-          <query>`get_all_dashboards_summary`
+          <query>| mstats sum(_value) as metric_value WHERE index=caca_metrics AND metric_name="dashboard.*" BY pretty_name, metric_name, app span=1d
+| where _time >= relative_time(now(), "-7d")
+| stats sum(metric_value) as total_value by pretty_name, metric_name, app
+| eval metric_type=case(
+    metric_name=="dashboard.views", "views_7d",
+    metric_name=="dashboard.edits", "edits_7d",
+    metric_name=="dashboard.errors", "errors_7d",
+    metric_name=="dashboard.load_time", "load_time_7d",
+    1=1, "other")
+| eval {metric_type}=total_value
+| stats values(app) as app sum(views_7d) as views_7d sum(edits_7d) as edits_7d sum(errors_7d) as errors_7d avg(load_time_7d) as avg_load_time_7d by pretty_name
+| fillnull value=0 views_7d edits_7d errors_7d avg_load_time_7d
+| eval health_status=case(
+    errors_7d > 10, "critical",
+    errors_7d > 0, "warning",
+    views_7d == 0, "stale",
+    1=1, "healthy")
 | lookup dashboard_registry pretty_name OUTPUT owner description
 | eval avg_load_time_7d=round(avg_load_time_7d, 0)
 | eval perf_rating=case(
