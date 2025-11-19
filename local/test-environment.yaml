@@ -245,6 +245,8 @@ spec:
   ports:
   - name: http
     port: 8000
+  - name: mgmt
+    port: 8089
   type: ClusterIP
   selector:
     app: splunk
@@ -278,3 +280,70 @@ spec:
   type: ClusterIP
   selector:
     app: splunk
+---
+# Test Runner Job
+# Automates the test environment setup: runs registry update, generates traffic, and runs collectors
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: caca-test-runner
+  namespace: splunk-caca
+spec:
+  ttlSecondsAfterFinished: 600
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: test-runner
+        image: curlimages/curl:latest
+        env:
+          - name: SPLUNK_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: splunk-secret
+                key: password
+          - name: SPLUNK_HOST
+            value: "splunk-http"
+        command:
+        - /bin/sh
+        - -c
+        - |
+          echo "Waiting for Splunk Management API (8089)..."
+          until curl -s -k -o /dev/null https://${SPLUNK_HOST}:8089/services/server/info; do
+            echo "Splunk not ready yet..."
+            sleep 10
+          done
+
+          # Wait a bit more for login to be fully ready
+          echo "Splunk API is responding. Waiting 30s for full startup..."
+          sleep 30
+
+          echo "=== 1. Running Registry Update ==="
+          curl -k -u admin:${SPLUNK_PASSWORD} https://${SPLUNK_HOST}:8089/services/saved/searches/Dashboard%20Registry%20-%20Auto%20Update/dispatch -d trigger_actions=1 -X POST
+          echo "Registry Update Dispatched."
+          sleep 5
+
+          echo "=== 2. Generating Traffic (Views) ==="
+          DASHBOARDS="dashboard_leaderboard poop_deck caca_admin dashboard_details"
+          for dash in $DASHBOARDS; do
+            echo "Viewing $dash..."
+            for i in 1 2 3; do
+              curl -s -u admin:${SPLUNK_PASSWORD} -o /dev/null "http://${SPLUNK_HOST}:8000/en-US/app/splunk-content-monitoring-console/$dash"
+            done
+          done
+
+          echo "=== 3. Simulating Dashboard Edit ==="
+          # Update description to trigger an edit event
+          EDIT_URL="https://${SPLUNK_HOST}:8089/servicesNS/admin/splunk-content-monitoring-console/data/ui/views/dashboard_leaderboard"
+          DESC="Content Activity Checking Application - Monitor all dashboard usage, health, and activity (Automated Test Edit)"
+          curl -k -u admin:${SPLUNK_PASSWORD} $EDIT_URL -d "description=$DESC"
+          echo "Dashboard Edited."
+
+          echo "=== 4. Running Metric Collectors ==="
+          COLLECTORS="Dashboard%20Views%20-%20Metrics%20Collector Dashboard%20Edits%20-%20Metrics%20Collector Dashboard%20Health%20-%20Metrics%20Collector Dashboard%20Performance%20-%20Metrics%20Collector"
+          for collector in $COLLECTORS; do
+            echo "Running $collector..."
+            curl -k -u admin:${SPLUNK_PASSWORD} https://${SPLUNK_HOST}:8089/services/saved/searches/$collector/dispatch -d trigger_actions=1 -X POST
+          done
+
+          echo "=== Test Automation Complete ==="
