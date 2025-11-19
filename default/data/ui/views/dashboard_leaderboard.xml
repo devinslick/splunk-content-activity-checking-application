@@ -239,7 +239,17 @@
       <title>Slowest Dashboards (7d Avg)</title>
       <table>
         <search>
-          <query>`get_slow_dashboards`
+          <query>| mstats avg(_value) as avg_load_time WHERE index=caca_metrics AND metric_name="dashboard.load_time" BY pretty_name, app span=1d
+| where _time >= relative_time(now(), "-7d")
+| stats avg(avg_load_time) as avg_load_time_7d by pretty_name, app
+| where avg_load_time_7d > 3000
+| eval avg_load_time_7d=round(avg_load_time_7d, 0)
+| eval performance_status=case(
+    avg_load_time_7d > 10000, "Critical",
+    avg_load_time_7d > 5000, "Poor",
+    avg_load_time_7d > 3000, "Fair",
+    1=1, "Good")
+| sort -avg_load_time_7d
 | head 10
 | rename pretty_name as "Dashboard", app as "App", avg_load_time_7d as "Avg Load (ms)", performance_status as "Status"</query>
           <earliest>-7d@h</earliest>
@@ -266,7 +276,13 @@
       <title>Top 10 Most Viewed Dashboards</title>
       <table>
         <search>
-          <query>`get_top_dashboards(views)`
+          <query>| mstats sum(_value) as metric_value WHERE index=caca_metrics AND metric_name="dashboard.views" BY pretty_name, app span=1d
+| where _time >= relative_time(now(), "-7d")
+| stats sum(metric_value) as total by pretty_name, app
+| sort -total
+| head 10
+| streamstats count as rank
+| eval metric_type="views"
 | rename pretty_name as "Dashboard", app as "App", total as "Views (7d)", rank as "Rank"</query>
           <earliest>-7d@h</earliest>
           <latest>now</latest>
@@ -283,7 +299,13 @@
       <title>Top 10 Most Edited Dashboards</title>
       <table>
         <search>
-          <query>`get_top_dashboards(edits)`
+          <query>| mstats sum(_value) as metric_value WHERE index=caca_metrics AND metric_name="dashboard.edits" BY pretty_name, app span=1d
+| where _time >= relative_time(now(), "-7d")
+| stats sum(metric_value) as total by pretty_name, app
+| sort -total
+| head 10
+| streamstats count as rank
+| eval metric_type="edits"
 | rename pretty_name as "Dashboard", app as "App", total as "Edits (7d)", rank as "Rank"</query>
           <earliest>-7d@h</earliest>
           <latest>now</latest>

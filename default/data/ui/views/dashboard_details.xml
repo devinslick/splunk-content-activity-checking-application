@@ -108,7 +108,9 @@
       <title>Last Viewed</title>
       <single>
         <search>
-          <query>`get_dashboard_last_viewed("$dashboard_name$")`
+          <query>| mstats latest(_value) as last_view WHERE index=caca_metrics AND pretty_name="$dashboard_name$" AND metric_name="dashboard.views" BY pretty_name
+| eval last_viewed=strftime(_time, "%Y-%m-%d %H:%M:%S")
+| eval days_since_view=round((now()-_time)/86400, 1)
 | eval display=if(isnull(days_since_view), "Never", days_since_view." days ago")
 | table display</query>
           <earliest>-90d@d</earliest>
