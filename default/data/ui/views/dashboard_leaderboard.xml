@@ -205,7 +205,7 @@
       <title>Average Load Time Trend (Last 7 Days)</title>
       <chart>
         <search>
-          <query>| mstats avg(avg_load_time) as avg_load WHERE index=caca_metrics AND metric_name="dashboard.load_time" span=1d
+          <query>| mstats avg(_value) as avg_load WHERE index=caca_metrics AND metric_name="dashboard.load_time" span=1d
 | timechart avg(avg_load) as "Avg Load Time (ms)" span=1d</query>
           <earliest>-7d@h</earliest>
           <latest>now</latest>
