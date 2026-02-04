@@ -639,7 +639,7 @@ We welcome contributions for any of these roadmap items or new feature ideas. Pl
 - Better error handling in all collectors
 - More robust field extraction in data collection
 - Improved performance with tsidx reduction enabled
-- All scheduled searches now enabled by default
+- Core data collection searches enabled by default (alerts and reports disabled by default)
 
 #### Breaking Changes
 - App version bumped from 0.0.1 to 1.0.0
