@@ -635,10 +635,9 @@ We welcome contributions for any of these roadmap items or new feature ideas. Pl
 
 #### Improvements
 - Fixed all dashboard URL references to use correct app ID (`caca`)
-- Improved indexes.conf with metric-specific optimizations
+- Improved indexes.conf configuration
 - Better error handling in all collectors
 - More robust field extraction in data collection
-- Improved performance with tsidx reduction enabled
 - Core data collection searches enabled by default (alerts and reports disabled by default)
 
 #### Breaking Changes
