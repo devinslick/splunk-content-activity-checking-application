@@ -5,7 +5,7 @@
     "id": {
       "group": null,
       "name": "caca",
-      "version": "0.0.1"
+      "version": "1.0.0"
     },
     "author": [
       {
@@ -15,11 +15,11 @@
       }
     ],
     "releaseDate": null,
-    "description": "CACA (Content Activity Checking Application) - Track usage, health, and lifecycle of your Splunk dashboards",
+    "description": "CACA (Content Activity Checking Application) - Monitor dashboard usage, health, performance, and lifecycle. Track views, edits, errors, and load times to identify high-value content, stale dashboards, and performance issues.",
     "classification": {
       "intendedAudience": "IT",
       "categories": ["IT Operations", "Monitoring"],
-      "developmentStatus": "Beta/Draft"
+      "developmentStatus": "Production"
     },
     "commonInformationModels": null,
     "license": {
