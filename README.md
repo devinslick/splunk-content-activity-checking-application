@@ -109,10 +109,20 @@ Version 1.0.0 - Production Ready
 
 After installation, follow these steps to initialize CACA:
 
-### 1. Verify Index Creation
+### 1. Create the Metrics Index
 
-The `caca_metrics` index should be created automatically. Verify by running:
+Create a metrics index named `caca_metrics` before using CACA:
 
+**For Splunk Enterprise:**
+```spl
+| rest /services/data/indexes | search title=caca_metrics
+```
+If the index doesn't exist, create it via CLI or indexes.conf (see Configuration section).
+
+**For Splunk Cloud:**
+Request your Splunk Cloud administrator to create a metrics index named `caca_metrics`.
+
+Verify the index exists:
 ```spl
 | eventcount summarize=false index=caca_metrics
 ```
@@ -397,14 +407,23 @@ Edit `default/savedsearches.conf` or use Splunk Web to modify:
 - **Health tracking frequency**: Default every 15 minutes
 - **Registry update frequency**: Default daily at 2 AM
 
-### Customizing Metrics Retention
+### Creating the Metrics Index
 
-Edit `default/indexes.conf` to adjust retention:
+CACA requires a metrics index named `caca_metrics`. This index must be created manually before using the app.
 
-```ini
+**For Splunk Enterprise:**
+```bash
+# Via CLI
+splunk add index caca_metrics -datatype metric
+
+# Or add to $SPLUNK_HOME/etc/system/local/indexes.conf:
 [caca_metrics]
-frozenTimePeriodInSecs = 31536000  # 1 year (default)
+datatype = metric
+frozenTimePeriodInSecs = 31536000
 ```
+
+**For Splunk Cloud:**
+Contact your Splunk Cloud administrator to create a metrics index named `caca_metrics` with appropriate retention settings.
 
 ### Configurable Thresholds
 
