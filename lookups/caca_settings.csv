@@ -1,0 +1,13 @@
+setting_name,setting_value,setting_description
+error_threshold_warning,1,Number of errors to trigger warning status
+error_threshold_critical,10,Number of errors to trigger critical status
+load_time_fast,1000,Load time in ms considered fast
+load_time_good,3000,Load time in ms considered good
+load_time_slow,5000,Load time in ms considered slow
+load_time_critical,10000,Load time in ms considered critical
+stale_threshold_days,30,Days without views to consider dashboard stale
+engagement_edit_weight,2,Weight multiplier for edits in engagement score
+engagement_error_penalty,5,Penalty multiplier for errors in engagement score
+low_engagement_threshold,20,Views below this in 30 days is considered low engagement
+vip_percentile,90,Percentile threshold for VIP/gem dashboards
+metrics_retention_days,365,Days to retain metrics data
