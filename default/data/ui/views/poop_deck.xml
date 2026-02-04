@@ -168,7 +168,7 @@
           <option name="precision">0</option>
         </format>
         <drilldown>
-          <link target="_blank">/app/splunk-content-monitoring-console/dashboard_details?form.dashboard_name=$row.Dashboard$</link>
+          <link target="_blank">/app/caca/dashboard_details?form.dashboard_name=$row.Dashboard$</link>
         </drilldown>
       </table>
     </panel>
@@ -215,7 +215,7 @@
           <option name="precision">0</option>
         </format>
         <drilldown>
-          <link target="_blank">/app/splunk-content-monitoring-console/dashboard_details?form.dashboard_name=$row.Dashboard$</link>
+          <link target="_blank">/app/caca/dashboard_details?form.dashboard_name=$row.Dashboard$</link>
         </drilldown>
       </table>
     </panel>
@@ -273,7 +273,7 @@
           <option name="precision">0</option>
         </format>
         <drilldown>
-          <link target="_blank">/app/splunk-content-monitoring-console/dashboard_details?form.dashboard_name=$row.Dashboard$</link>
+          <link target="_blank">/app/caca/dashboard_details?form.dashboard_name=$row.Dashboard$</link>
         </drilldown>
       </table>
     </panel>
@@ -329,7 +329,7 @@
           <option name="precision">0</option>
         </format>
         <drilldown>
-          <link target="_blank">/app/splunk-content-monitoring-console/dashboard_details?form.dashboard_name=$row.Dashboard$</link>
+          <link target="_blank">/app/caca/dashboard_details?form.dashboard_name=$row.Dashboard$</link>
         </drilldown>
       </table>
     </panel>
@@ -382,7 +382,7 @@
           <option name="precision">0</option>
         </format>
         <drilldown>
-          <link target="_blank">/app/splunk-content-monitoring-console/dashboard_details?form.dashboard_name=$row.Dashboard$</link>
+          <link target="_blank">/app/caca/dashboard_details?form.dashboard_name=$row.Dashboard$</link>
         </drilldown>
       </table>
     </panel>
@@ -434,7 +434,7 @@
           <option name="precision">2</option>
         </format>
         <drilldown>
-          <link target="_blank">/app/splunk-content-monitoring-console/dashboard_details?form.dashboard_name=$row.Dashboard$</link>
+          <link target="_blank">/app/caca/dashboard_details?form.dashboard_name=$row.Dashboard$</link>
         </drilldown>
       </table>
     </panel>
@@ -445,8 +445,8 @@
     <panel>
       <html>
         <div style="text-align: center; padding: 20px;">
-          <a href="/app/splunk-content-monitoring-console/dashboard_leaderboard" class="btn btn-primary" style="margin: 5px;">← Back to Dashboard Leaderboard</a>
-          <a href="/app/splunk-content-monitoring-console/search" class="btn btn-secondary" style="margin: 5px;">Open in Search</a>
+          <a href="/app/caca/dashboard_leaderboard" class="btn btn-primary" style="margin: 5px;">← Back to Dashboard Leaderboard</a>
+          <a href="/app/caca/search" class="btn btn-secondary" style="margin: 5px;">Open in Search</a>
         </div>
         <div style="text-align: center; padding: 10px; color: #708794; font-style: italic;">
           <p>💡 Pro Tip: Use the stale threshold dropdown to adjust what counts as "crap" in your environment.</p>

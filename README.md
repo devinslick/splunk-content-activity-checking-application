@@ -77,7 +77,7 @@ The app uses a three-stage pipeline for efficiency:
 All searches are configured with **low priority** to ensure they do not impact regular user searches or system performance. The searches use efficient `mcollect` commands to write directly to a metrics index, minimizing resource consumption.
 
 ## Status
-DRAFT - Work in Progress
+Version 1.0.0 - Production Ready
 
 ## Requirements
 
@@ -406,6 +406,39 @@ Edit `default/indexes.conf` to adjust retention:
 frozenTimePeriodInSecs = 31536000  # 1 year (default)
 ```
 
+### Configurable Thresholds
+
+CACA uses configurable thresholds stored in `lookups/caca_settings.csv`. You can customize these settings to match your environment:
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `error_threshold_warning` | 1 | Number of errors to trigger warning status |
+| `error_threshold_critical` | 10 | Number of errors to trigger critical status |
+| `load_time_fast` | 1000 | Load time (ms) considered fast |
+| `load_time_good` | 3000 | Load time (ms) considered good |
+| `load_time_slow` | 5000 | Load time (ms) considered slow |
+| `load_time_critical` | 10000 | Load time (ms) considered critical |
+| `stale_threshold_days` | 30 | Days without views to consider dashboard stale |
+| `engagement_edit_weight` | 2 | Weight multiplier for edits in engagement score |
+| `engagement_error_penalty` | 5 | Penalty multiplier for errors in engagement score |
+| `low_engagement_threshold` | 20 | Views below this in 30 days is low engagement |
+| `vip_percentile` | 90 | Percentile threshold for VIP/gem dashboards |
+
+**To modify settings:**
+1. Navigate to **Settings → Lookups → Lookup table files**
+2. Find `caca_settings.csv` in the CACA app
+3. Edit the `setting_value` column for any setting
+4. Save changes
+
+### Sample Data Generation (For Testing)
+
+CACA includes saved searches to generate sample data for testing and demonstration:
+
+1. **Generate Sample Registry**: Run `CACA - Generate Sample Registry` to populate the dashboard registry with 10 sample dashboards
+2. **Generate Sample Data**: Run `CACA - Generate Sample Data` to generate realistic metrics data
+
+**Note:** These searches are disabled by default. Enable and run them manually from **Settings → Searches, reports, and alerts** when you need test data. Disable them in production environments.
+
 ### Filtering Apps for Monitoring
 
 CACA can be configured to only monitor dashboards from specific apps, or exclude certain apps from monitoring. This is useful when you only want to track dashboards in production apps, or exclude system/admin apps.
@@ -582,6 +615,35 @@ We welcome contributions for any of these roadmap items or new feature ideas. Pl
 4. Add test data or validation steps
 
 ## Release Notes
+
+### Version 1.0.0 (Comprehensive Rewrite)
+
+#### New Features
+- **Configurable Settings Lookup**: All thresholds (error levels, load times, stale detection, engagement scoring) are now configurable via `lookups/caca_settings.csv`
+- **Sample Data Generation**: New saved searches to generate test data for demonstration and testing purposes
+- **Enhanced Macros**: 25+ reusable search macros including:
+  - Settings loading and retrieval macros
+  - Stale and ghost dashboard detection
+  - Engagement scoring and VIP dashboard identification
+  - Customizable time range queries
+  - System app filtering
+- **New Collectors**:
+  - User engagement collector (tracks unique users per dashboard)
+  - Registry cleanup job (removes orphaned entries weekly)
+- **Alerting**: Pre-built alerts for critical dashboards and slow performance
+- **Reports**: Daily activity summary and weekly trend reports
+
+#### Improvements
+- Fixed all dashboard URL references to use correct app ID (`caca`)
+- Improved indexes.conf with metric-specific optimizations
+- Better error handling in all collectors
+- More robust field extraction in data collection
+- Improved performance with tsidx reduction enabled
+- All scheduled searches now enabled by default
+
+#### Breaking Changes
+- App version bumped from 0.0.1 to 1.0.0
+- Some macro names have been updated for consistency
 
 ### Version 0.0.1
 - Initial draft

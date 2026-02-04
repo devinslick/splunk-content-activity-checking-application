@@ -227,7 +227,7 @@
   <row>
     <panel>
       <html>
-        <a href="/app/splunk-content-monitoring-console/dashboard_leaderboard" class="btn btn-primary">← Back to Dashboard Leaderboard</a>
+        <a href="/app/caca/dashboard_leaderboard" class="btn btn-primary">← Back to Dashboard Leaderboard</a>
       </html>
     </panel>
   </row>

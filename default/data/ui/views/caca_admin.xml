@@ -392,7 +392,7 @@
             <link target="_blank">$row.Dashboard URI$</link>
           </condition>
           <condition field="*">
-            <link target="_blank">/app/splunk-content-monitoring-console/dashboard_details?form.dashboard_name=$row.Dashboard Name$</link>
+            <link target="_blank">/app/caca/dashboard_details?form.dashboard_name=$row.Dashboard Name$</link>
           </condition>
         </drilldown>
       </table>
@@ -415,7 +415,7 @@
             <a href="/manager/caca/apps/local" target="_blank" class="btn btn-secondary" style="min-width: 200px; text-align: center; padding: 12px 20px;">
               ⚙️ Settings
             </a>
-            <a href="/en-US/app/splunk-content-monitoring-console/search" target="_blank" class="btn btn-secondary" style="min-width: 200px; text-align: center; padding: 12px 20px;">
+            <a href="/app/caca/search" target="_blank" class="btn btn-secondary" style="min-width: 200px; text-align: center; padding: 12px 20px;">
               🔍 Search
             </a>
           </div>
@@ -532,7 +532,7 @@
           <option name="precision">0</option>
         </format>
         <drilldown>
-          <link target="_blank">/app/splunk-content-monitoring-console/dashboard_details?form.dashboard_name=$row.Dashboard Name$</link>
+          <link target="_blank">/app/caca/dashboard_details?form.dashboard_name=$row.Dashboard Name$</link>
         </drilldown>
       </table>
     </panel>
@@ -543,8 +543,8 @@
     <panel>
       <html>
         <div style="text-align: center; padding: 20px;">
-          <a href="/app/splunk-content-monitoring-console/dashboard_leaderboard" class="btn btn-primary" style="margin: 5px;">← Back to Dashboard Leaderboard</a>
-          <a href="/app/splunk-content-monitoring-console/poop_deck" class="btn btn-secondary" style="margin: 5px;">View Poop Deck Analysis</a>
+          <a href="/app/caca/dashboard_leaderboard" class="btn btn-primary" style="margin: 5px;">← Back to Dashboard Leaderboard</a>
+          <a href="/app/caca/poop_deck" class="btn btn-secondary" style="margin: 5px;">View Poop Deck Analysis</a>
         </div>
       </html>
     </panel>
